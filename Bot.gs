@@ -13,14 +13,16 @@ const MESSAGES = {
   ar: {
     welcome: '👋 أهلاً بك! أرسل لي ملف Word أو Excel أو PowerPoint وسأقوم بتحويله إلى PDF.',
     help: 'فقط قم برفع ملف (.docx, .xlsx, .pptx) وسأقوم بتحويله وتحميله لك كملف PDF.',
-    version: '🤖 إصدار البوت: 18.1 (تقارير كاملة)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
+    version: '🤖 إصدار البوت: 20.1 (لوحة تحكم شاملة للمدير)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
     unsupported: '❌ ملف غير مدعوم. يرجى إرسال .docx أو .xlsx أو .pptx',
     too_large: '❌ الملف كبير جداً. يمكن للبوت معالجة ملفات حتى 20 ميجابايت فقط.',
     processing: '📥 جاري المعالجة... يرجى الانتظار',
     delivered: '✅ تم تسليم ملف PDF بنجاح! تم تحديث السجل.',
     limit_reached: '⚠️ لقد وصلت للحد الأقصى المسموح به اليوم (20 ملفاً). يرجى المحاولة غداً أو طلب استثناء من المدير.',
+    usage_progress: '📊 حد الاستخدام اليومي: %count%/20',
     select_lang: 'يرجى اختيار اللغة:',
-    lang_set: '✅ تم ضبط اللغة بنجاح.'
+    lang_set: '✅ تم ضبط اللغة بنجاح.',
+    convert_prompt: '📤 من فضلك أرسل الملف الذي تريد تحويله الآن (.docx, .xlsx, .pptx)'
   },
   en: {
     welcome: '👋 Welcome! Send me a Word, Excel, or PowerPoint file and I will convert it to PDF.',
@@ -31,8 +33,10 @@ const MESSAGES = {
     processing: '📥 Processing... please wait',
     delivered: '✅ PDF Delivered! Tracking updated.',
     limit_reached: '⚠️ Daily limit reached (20 files). Try again tomorrow or contact admin.',
+    usage_progress: '📊 Daily Usage: %count%/20',
     select_lang: 'Please select your language:',
-    lang_set: '✅ Language updated successfully.'
+    lang_set: '✅ Language updated successfully.',
+    convert_prompt: '📤 Please send the file you want to convert now (.docx, .xlsx, .pptx)'
   }
 };
 
@@ -118,20 +122,53 @@ function processMessage(msg) {
   // Logger: Track every user who talks to the bot
   logUser(msg.from);
   
-  // Commands
-  if (text === '/start') {
-    sendMessage(chatId, t(chatId, 'welcome'));
+  // Commands & Keyboard Buttons
+  if (text === '/start' || text === '🏠 Main Menu') {
+    if (String(chatId) === String(ADMIN_ID)) {
+      sendAdminMenu(chatId, "🛠️ Welcome, Admin! Accessing management dashboard...");
+    } else {
+      sendMainMenu(chatId, t(chatId, 'welcome'));
+    }
     return;
   }
   
-  if (text === '/help') {
+  if (text === '/help' || text === '❓ Help') {
     sendMessage(chatId, t(chatId, 'help'));
     return;
   }
 
-  if (text === '/lang' || text === '/language') {
+  if (text === '/lang' || text === '/language' || text === '🌐 Language') {
     sendLanguageKeyboard(chatId);
     return;
+  }
+
+  if (text === '/convert' || text === '📄 Convert' || text === '📄 تحويل') {
+    sendMessage(chatId, t(chatId, 'convert_prompt'));
+    return;
+  }
+
+  // Admin Specific Buttons
+  if (String(chatId) === String(ADMIN_ID)) {
+    if (text === '📊 Statistics') {
+      sendMessage(chatId, getBotStats());
+      return;
+    }
+    if (text === '🔍 System Health') {
+      sendMessage(chatId, checkSpreadsheetHealth());
+      return;
+    }
+    if (text === '📣 Broadcast') {
+      sendMessage(chatId, "📣 **Broadcast Mode:**\n\nPlease type `/broadcast` followed by your message.\n\n*Example:*\n`/broadcast Hello everyone!`");
+      return;
+    }
+    if (text === '🛡️ Whitelist') {
+      sendMessage(chatId, "🛡️ **Whitelist Mode:**\n\nPlease type `/add` followed by the Username or Chat ID.\n\n*Example:*\n`/add @john_doe` or `/add 1234567` ");
+      return;
+    }
+    if (text === '🧪 Debug Sheet') {
+      sendMessage(chatId, debugSheet(chatId, msg.from));
+      return;
+    }
   }
 
   if (text === '/version') {
@@ -139,7 +176,7 @@ function processMessage(msg) {
     return;
   }
 
-  // Admin Commands
+  // Admin Text Commands
   if (String(chatId) === String(ADMIN_ID)) {
     if (text.startsWith('/add ')) {
       const userToAdd = text.replace('/add ', '').trim();
@@ -163,6 +200,13 @@ function processMessage(msg) {
     if (text === '/debug_sheet') {
       const res = debugSheet(chatId, msg.from);
       sendMessage(chatId, res);
+      return;
+    }
+
+    if (text.startsWith('/broadcast ')) {
+      const messageToBroadcast = text.replace('/broadcast ', '').trim();
+      const stats = sendBroadcast(messageToBroadcast);
+      sendMessage(chatId, stats);
       return;
     }
   }
@@ -244,7 +288,10 @@ function handleFile(chatId, doc, from) {
     const pdfBlob = convertToPdf(fileBlob, fileName);
     sendDocument(chatId, pdfBlob);
     logToSheet(from, fileName); // Passing full user object
-    sendMessage(chatId, t(chatId, 'delivered'));
+    
+    // Show usage progress
+    const usage = getUserUsage(chatId);
+    sendMessage(chatId, t(chatId, 'delivered') + '\n\n' + t(chatId, 'usage_progress').replace('%count%', usage));
     
   } catch (error) {
     sendMessage(chatId, 'Error: ' + error.toString());
@@ -252,6 +299,41 @@ function handleFile(chatId, doc, from) {
 }
 
 // === ADMIN HELPERS ===
+
+function sendBroadcast(text) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Users');
+    if (!sheet) return "❌ Users sheet not found.";
+
+    const data = sheet.getDataRange().getValues();
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const userId = data[i][1];
+      if (!userId) continue;
+
+      try {
+        const response = sendMessage(userId, "📣 **BROADCAST MESSAGE:**\n\n" + text);
+        if (JSON.parse(response.getContentText()).ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        failCount++;
+      }
+      
+      // Basic rate limiting to avoid Telegram 429 errors
+      if (i % 25 === 0) Utilities.sleep(1000);
+    }
+
+    return `📢 **Broadcast Results:**\n\n✅ Success: ${successCount}\n❌ Failed/Blocked: ${failCount}`;
+  } catch (e) {
+    return "❌ Broadcast failed: " + e.toString();
+  }
+}
 
 function checkSpreadsheetHealth() {
   try {
@@ -292,10 +374,13 @@ function setBotCommands() {
   const url = getBotUrl() + 'setMyCommands';
   const payload = {
     commands: [
-      { command: 'start', description: 'ابدأ المحادثة / Start' },
-      { command: 'help', description: 'تعليمات الاستخدام / Help' },
-      { command: 'lang', description: 'تغيير اللغة / Change Language' },
-      { command: 'version', description: 'حالة البوت والإصدار / Version' }
+      { command: 'start', description: 'ابدأ البوت / Start Bot' },
+      { command: 'help', description: 'تعليمات / Help' },
+      { command: 'lang', description: 'تغيير اللغة / Settings' },
+      { command: 'stats', description: 'إحصائيات / Stats (Admin)' },
+      { command: 'check', description: 'فحص النظام / Health (Admin)' },
+      { command: 'broadcast', description: 'نشر رسالة / Broadcast (Admin)' },
+      { command: 'version', description: 'الإصدار / Version' }
     ]
   };
   
@@ -305,7 +390,7 @@ function setBotCommands() {
     payload: JSON.stringify(payload)
   });
 
-  // Explicitly set the Menu Button to 'commands' type
+  // Global menu button (blue button)
   const menuUrl = getBotUrl() + 'setChatMenuButton';
   const menuPayload = {
     menu_button: { type: 'commands' }
@@ -383,6 +468,29 @@ function checkAndIncrementLimit(chatId, username) {
   return true;
 }
 
+function getUserUsage(chatId) {
+  if (String(chatId) === String(ADMIN_ID)) return "Unlimited";
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Limits');
+    if (!sheet) return "0";
+
+    const today = Utilities.formatDate(new Date(), "GMT+3", "yyyy-MM-dd");
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = Utilities.formatDate(new Date(data[i][0]), "GMT+3", "yyyy-MM-dd");
+      if (rowDate === today && String(data[i][1]) === String(chatId)) {
+        return data[i][2];
+      }
+    }
+  } catch (e) {
+    console.error('getUserUsage error:', e.toString());
+  }
+  return "0";
+}
+
 function logToSheet(from, fileName) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -424,6 +532,55 @@ function sendMessage(chatId, text) {
   const payload = {
     chat_id: chatId,
     text: text
+  };
+  
+  return UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+}
+
+function sendMainMenu(chatId, text) {
+  const url = getBotUrl() + 'sendMessage';
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    reply_markup: {
+      keyboard: [
+        [{ text: '📄 Convert' }, { text: '🌐 Language' }],
+        [{ text: '❓ Help' }]
+      ],
+      resize_keyboard: true,
+      persistent: true
+    }
+  };
+  
+  return UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+}
+
+function sendAdminMenu(chatId, text) {
+  const url = getBotUrl() + 'sendMessage';
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    reply_markup: {
+      keyboard: [
+        [{ text: '📊 Statistics' }, { text: '🔍 System Health' }],
+        [{ text: '� Convert' }, { text: '🌐 Language' }],
+        [{ text: '�📣 Broadcast' }, { text: '🛡️ Whitelist' }],
+        [{ text: '🧪 Debug Sheet' }, { text: '❓ Help' }],
+        [{ text: '🏠 Main Menu' }]
+      ],
+      resize_keyboard: true,
+      persistent: true
+    }
   };
   
   return UrlFetchApp.fetch(url, {

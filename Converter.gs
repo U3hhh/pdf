@@ -21,9 +21,11 @@ function convertToPdf(blob, fileName) {
       }, tempFileId);
       convertedFileId = slides.id;
       
-      // Export using DriveApp (No Auth/Spam check issues)
-      const pdfBlob = DriveApp.getFileById(convertedFileId).getAs(MimeType.PDF);
-      return pdfBlob.setName(fileName.replace(/\.[^.]+$/, '.pdf'));
+      // Wait for Google Drive to finish internal processing
+      Utilities.sleep(2000);
+      
+      const file = DriveApp.getFileById(convertedFileId);
+      return file.getAs(MimeType.PDF).setName(fileName.replace(/\.[^.]+$/, '.pdf'));
       
     } else {
       // DOCX/XLSX: Direct conversion
@@ -35,11 +37,22 @@ function convertToPdf(blob, fileName) {
       }, blob, { convert: true });
       tempFileId = file.id;
       
-      // Export using DriveApp
-      const pdfBlob = DriveApp.getFileById(tempFileId).getAs(MimeType.PDF);
-      return pdfBlob.setName(fileName.replace(/\.[^.]+$/, '.pdf'));
+      // Wait for Google Drive to finish internal processing
+      Utilities.sleep(2000);
+      
+      try {
+        const pdfFile = DriveApp.getFileById(tempFileId);
+        return pdfFile.getAs(MimeType.PDF).setName(fileName.replace(/\.[^.]+$/, '.pdf'));
+      } catch (e) {
+        // Retry once after another short wait if it fails
+        Utilities.sleep(3000);
+        const pdfFile = DriveApp.getFileById(tempFileId);
+        return pdfFile.getAs(MimeType.PDF).setName(fileName.replace(/\.[^.]+$/, '.pdf'));
+      }
     }
     
+  } catch (err) {
+    throw new Error("Conversion Error: " + err.toString() + "\nFile Name: " + fileName);
   } finally {
     // Cleanup
     if (tempFileId) {
