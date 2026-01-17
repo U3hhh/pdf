@@ -13,7 +13,7 @@ const MESSAGES = {
   ar: {
     welcome: '👋 أهلاً بك! أرسل لي ملف Word أو Excel أو PowerPoint وسأقوم بتحويله إلى PDF.',
     help: 'فقط قم برفع ملف (.docx, .xlsx, .pptx) وسأقوم بتحويله وتحميله لك كملف PDF.',
-    version: '🤖 إصدار البوت: 17.1 (إصلاح الأخطاء)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
+    version: '🤖 إصدار البوت: 18.0 (تتبع المستخدمين)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
     unsupported: '❌ ملف غير مدعوم. يرجى إرسال .docx أو .xlsx أو .pptx',
     too_large: '❌ الملف كبير جداً. يمكن للبوت معالجة ملفات حتى 20 ميجابايت فقط.',
     processing: '📥 جاري المعالجة... يرجى الانتظار',
@@ -159,6 +159,12 @@ function processMessage(msg) {
       sendMessage(chatId, report);
       return;
     }
+
+    if (text === '/debug_sheet') {
+      const res = debugSheet(chatId, msg.from);
+      sendMessage(chatId, res);
+      return;
+    }
   }
   
   // File handling
@@ -212,7 +218,7 @@ function handleCallback(query) {
   }
 }
 
-function handleFile(chatId, doc) {
+function handleFile(chatId, doc, from) {
   try {
     const fileName = doc.file_name;
     const ext = fileName.split('.').pop().toLowerCase();
@@ -227,7 +233,7 @@ function handleFile(chatId, doc) {
       return;
     }
 
-    const username = doc.from ? (doc.from.username ? '@' + doc.from.username : null) : null;
+    const username = from ? (from.username ? '@' + from.username : null) : null;
     if (!checkAndIncrementLimit(chatId, username)) {
       sendMessage(chatId, t(chatId, 'limit_reached'));
       return;
@@ -237,7 +243,7 @@ function handleFile(chatId, doc) {
     const fileBlob = downloadFile(doc.file_id);
     const pdfBlob = convertToPdf(fileBlob, fileName);
     sendDocument(chatId, pdfBlob);
-    logToSheet(chatId, fileName);
+    logToSheet(from, fileName); // Passing full user object
     sendMessage(chatId, t(chatId, 'delivered'));
     
   } catch (error) {
@@ -374,24 +380,39 @@ function checkAndIncrementLimit(chatId, username) {
   return true;
 }
 
-function logToSheet(chatId, fileName) {
+function logToSheet(from, fileName) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('Logs');
     
     if (!sheet) {
-      throw new Error('لم يتم العثور على ورقة "Logs" في جدول البيانات! يرجى تشغيل setupSpreadsheet() أولاً.');
+      throw new Error('Tab named "Logs" not found.');
     }
     
     sheet.appendRow([
       new Date(),
-      chatId,
+      from ? String(from.id) : '---',
+      from ? (from.username ? '@' + from.username : '---') : '---',
+      from ? (from.first_name || '---') : '---',
       fileName,
-      'نجاح'
+      'Success'
     ]);
   } catch (e) {
     console.error('Logging failed:', e.toString());
-    sendMessage(chatId, '⚠️ فشل تسجيل البيانات في جدول البيانات: ' + e.toString());
+  }
+}
+
+// Diagnostic helper
+function debugSheet(chatId, from) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Logs');
+    if (!sheet) return "❌ Logs sheet not found.";
+    
+    sheet.appendRow([new Date(), from.id, (from.username||'none'), (from.first_name||'none'), 'DEBUG_TEST', 'OK']);
+    return "✅ Debug row written to Google Sheets!";
+  } catch (e) {
+    return "❌ Debug failed: " + e.toString();
   }
 }
 
