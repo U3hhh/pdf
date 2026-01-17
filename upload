@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Simple script to upload changes to GitHub automatically
+
+# 1. Add all changes
+git add .
+
+# 2. Commit with a message (use first argument if provided, otherwise generic message)
+MSG=${1:-"Auto update: $(date)"}
+git commit -m "$MSG"
+
+# 3. Push to main branch
+git push origin main
+
+echo "✅ Changes uploaded to GitHub successfully!"

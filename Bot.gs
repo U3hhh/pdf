@@ -13,7 +13,7 @@ const MESSAGES = {
   ar: {
     welcome: '👋 أهلاً بك! أرسل لي ملف Word أو Excel أو PowerPoint وسأقوم بتحويله إلى PDF.',
     help: 'فقط قم برفع ملف (.docx, .xlsx, .pptx) وسأقوم بتحويله وتحميله لك كملف PDF.',
-    version: '🤖 إصدار البوت: 17.0 (دعم اللغات)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
+    version: '🤖 إصدار البوت: 17.1 (إصلاح الأخطاء)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
     unsupported: '❌ ملف غير مدعوم. يرجى إرسال .docx أو .xlsx أو .pptx',
     too_large: '❌ الملف كبير جداً. يمكن للبوت معالجة ملفات حتى 20 ميجابايت فقط.',
     processing: '📥 جاري المعالجة... يرجى الانتظار',
@@ -46,16 +46,21 @@ function getUserLang(chatId) {
   const cachedLang = cache.get('lang_' + chatId);
   if (cachedLang) return cachedLang;
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('Settings');
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(chatId)) {
-      const lang = data[i][1];
-      cache.put('lang_' + chatId, lang, 3600);
-      return lang;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Settings');
+    if (!sheet) return 'ar'; // Default if sheet missing
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(chatId)) {
+        const lang = data[i][1];
+        cache.put('lang_' + chatId, lang, 3600);
+        return lang;
+      }
     }
+  } catch (e) {
+    console.error('getUserLang error:', e.toString());
   }
   return 'ar'; // Default
 }
@@ -239,15 +244,20 @@ function whitelistUser(identifier) {
 }
 
 function isWhitelisted(chatId, username) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('Whitelist');
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    const entry = String(data[i][0]);
-    if (entry === String(chatId) || (username && entry === String(username))) {
-      return true;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Whitelist');
+    if (!sheet) return false;
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const entry = String(data[i][0]);
+      if (entry === String(chatId) || (username && entry === String(username))) {
+        return true;
+      }
     }
+  } catch (e) {
+    console.error('isWhitelisted error:', e.toString());
   }
   return false;
 }
@@ -257,29 +267,36 @@ function checkAndIncrementLimit(chatId, username) {
   if (String(chatId) === String(ADMIN_ID)) return true;
   if (isWhitelisted(chatId, username)) return true;
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('Limits');
-  const today = Utilities.formatDate(new Date(), "GMT+3", "yyyy-MM-dd");
-  const data = sheet.getDataRange().getValues();
-  
-  let userRowIndex = -1;
-  let currentCount = 0;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Limits');
+    if (!sheet) return true; // Fail open if limits sheet is missing
 
-  for (let i = 1; i < data.length; i++) {
-    const rowDate = Utilities.formatDate(data[i][0], "GMT+3", "yyyy-MM-dd");
-    if (rowDate === today && String(data[i][1]) === String(chatId)) {
-      userRowIndex = i + 1;
-      currentCount = data[i][2];
-      break;
+    const today = Utilities.formatDate(new Date(), "GMT+3", "yyyy-MM-dd");
+    const data = sheet.getDataRange().getValues();
+    
+    let userRowIndex = -1;
+    let currentCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = Utilities.formatDate(new Date(data[i][0]), "GMT+3", "yyyy-MM-dd");
+      if (rowDate === today && String(data[i][1]) === String(chatId)) {
+        userRowIndex = i + 1;
+        currentCount = data[i][2];
+        break;
+      }
     }
-  }
 
-  if (currentCount >= 20) return false;
+    if (currentCount >= 20) return false;
 
-  if (userRowIndex === -1) {
-    sheet.appendRow([new Date(), chatId, 1]);
-  } else {
-    sheet.getRange(userRowIndex, 3).setValue(currentCount + 1);
+    if (userRowIndex === -1) {
+      sheet.appendRow([new Date(), chatId, 1]);
+    } else {
+      sheet.getRange(userRowIndex, 3).setValue(currentCount + 1);
+    }
+  } catch (e) {
+    console.error('checkAndIncrementLimit error:', e.toString());
+    return true; // Fail open on error to avoid blocking legitimate users
   }
   
   return true;
