@@ -230,10 +230,22 @@ function setBotCommands() {
     ]
   };
   
-  return UrlFetchApp.fetch(url, {
+  UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(payload)
+  });
+
+  // Explicitly set the Menu Button to 'commands' type
+  const menuUrl = getBotUrl() + 'setChatMenuButton';
+  const menuPayload = {
+    menu_button: { type: 'commands' }
+  };
+  
+  return UrlFetchApp.fetch(menuUrl, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(menuPayload)
   });
 }
 
