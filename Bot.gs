@@ -13,7 +13,7 @@ const MESSAGES = {
   ar: {
     welcome: '👋 أهلاً بك! أرسل لي ملف Word أو Excel أو PowerPoint وسأقوم بتحويله إلى PDF.',
     help: 'فقط قم برفع ملف (.docx, .xlsx, .pptx) وسأقوم بتحويله وتحميله لك كملف PDF.',
-    version: '🤖 إصدار البوت: 18.0 (تتبع المستخدمين)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
+    version: '🤖 إصدار البوت: 18.1 (تقارير كاملة)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
     unsupported: '❌ ملف غير مدعوم. يرجى إرسال .docx أو .xlsx أو .pptx',
     too_large: '❌ الملف كبير جداً. يمكن للبوت معالجة ملفات حتى 20 ميجابايت فقط.',
     processing: '📥 جاري المعالجة... يرجى الانتظار',
@@ -256,7 +256,7 @@ function handleFile(chatId, doc, from) {
 function checkSpreadsheetHealth() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheets = ['Logs', 'Limits', 'Whitelist', 'Settings'];
+    const sheets = ['Logs', 'Limits', 'Whitelist', 'Settings', 'Users'];
     let report = "🔍 **Spreadsheet Health Check:**\n\n";
     
     sheets.forEach(name => {
@@ -275,14 +275,17 @@ function getBotStats() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const logSheet = ss.getSheetByName('Logs');
   const limitSheet = ss.getSheetByName('Limits');
+  const usersSheet = ss.getSheetByName('Users');
   
-  const totalConversions = logSheet.getLastRow() - 1;
-  const activeUsersToday = limitSheet.getLastRow() - 1;
+  const totalConversions = logSheet ? (logSheet.getLastRow() - 1) : 0;
+  const activeUsersToday = limitSheet ? (limitSheet.getLastRow() - 1) : 0;
+  const totalUsers = usersSheet ? (usersSheet.getLastRow() - 1) : 0;
   
-  return `📊 *إحصائيات البوت:*\n\n` +
-         `✅ إجمالي التحويلات: ${totalConversions}\n` +
-         `👥 مستخدمو اليوم: ${activeUsersToday}\n` +
-         `🛡️ نظام الجسر: يعمل بنجاح`;
+  return `📊 *Bot Statistics:*\n\n` +
+         `✅ Total Conversions: ${totalConversions}\n` +
+         `👥 Registered Users: ${totalUsers}\n` +
+         `📈 Activity Today: ${activeUsersToday}\n` +
+         `🛡️ Bridge Status: Operational`;
 }
 
 function setBotCommands() {
