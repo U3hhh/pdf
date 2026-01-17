@@ -194,24 +194,27 @@ function setupSpreadsheet() {
   console.log('--- STARTING AGGRESSIVE SPREADSHEET SETUP ---');
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheet = ss.getSheetByName('Logs');
-    
-    if (!sheet) {
-      console.log('Creating "Logs" sheet...');
-      sheet = ss.insertSheet('Logs');
+    // 1. Setup Logs Sheet
+    let logSheet = ss.getSheetByName('Logs');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('Logs');
     }
-    
-    // Force set headers on Row 1 regardless of contents
-    console.log('Forcing headers on Row 1...');
-    const headers = [['Timestamp', 'Chat ID', 'File Name', 'Status']];
-    sheet.getRange(1, 1, 1, 4).setValues(headers);
-    sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#EFEFEF').setVerticalAlignment('middle');
-    sheet.setFrozenRows(1);
-    
-    // Add a test row immediately
-    sheet.appendRow([new Date(), 'SETUP_TEST', '---', 'SYSTEM_RESET']);
-    
-    // 2. Setup Limits Sheet
+    const logHeaders = [['Date', 'User ID', 'Username', 'First Name', 'File Name', 'Status']];
+    logSheet.getRange(1, 1, 1, 6).setValues(logHeaders);
+    logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#EFEFEF');
+    logSheet.setFrozenRows(1);
+
+    // 2. Setup Users Sheet (Database of all visitors)
+    let usersSheet = ss.getSheetByName('Users');
+    if (!usersSheet) {
+      usersSheet = ss.insertSheet('Users');
+      const userHeaders = [['First Seen', 'User ID', 'Username', 'First Name']];
+      usersSheet.getRange(1, 1, 1, 4).setValues(userHeaders);
+      usersSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#D9EAD3');
+      usersSheet.setFrozenRows(1);
+    }
+
+    // 3. Setup Limits Sheet
     let limitSheet = ss.getSheetByName('Limits');
     if (!limitSheet) {
       limitSheet = ss.insertSheet('Limits');

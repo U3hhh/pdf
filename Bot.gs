@@ -112,9 +112,11 @@ function getBotUrl() {
 }
 
 function processMessage(msg) {
-  console.log('processMessage called');
   const chatId = msg.chat.id;
-  const text = msg.text || ''; 
+  const text = msg.text || '';
+
+  // Logger: Track every user who talks to the bot
+  logUser(msg.from);
   
   // Commands
   if (text === '/start') {
@@ -151,11 +153,51 @@ function processMessage(msg) {
       sendMessage(chatId, stats);
       return;
     }
+
+    if (text === '/check') {
+      const report = checkSpreadsheetHealth();
+      sendMessage(chatId, report);
+      return;
+    }
   }
   
   // File handling
   if (msg.document) {
-    handleFile(chatId, msg.document);
+    handleFile(chatId, msg.document, msg.from);
+  }
+}
+
+function logUser(from) {
+  if (!from) return;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Users');
+    if (!sheet) return;
+
+    const userId = String(from.id);
+    const cache = CacheService.getScriptCache();
+    if (cache.get('last_seen_' + userId)) return; // Don't log if seen recently
+
+    const data = sheet.getDataRange().getValues();
+    let exists = false;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]) === userId) {
+        exists = true;
+        break;
+      }
+    }
+
+    if (!exists) {
+      sheet.appendRow([
+        new Date(),
+        userId,
+        from.username ? '@' + from.username : '---',
+        (from.first_name || '') + ' ' + (from.last_name || '')
+      ]);
+    }
+    cache.put('last_seen_' + userId, '1', 3600); // Cache for 1 hour
+  } catch (e) {
+    console.error('logUser error:', e.toString());
   }
 }
 
@@ -204,6 +246,24 @@ function handleFile(chatId, doc) {
 }
 
 // === ADMIN HELPERS ===
+
+function checkSpreadsheetHealth() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheets = ['Logs', 'Limits', 'Whitelist', 'Settings'];
+    let report = "🔍 **Spreadsheet Health Check:**\n\n";
+    
+    sheets.forEach(name => {
+      const sheet = ss.getSheetByName(name);
+      report += (sheet ? "✅ " : "❌ ") + name + "\n";
+    });
+    
+    report += "\n💡 If you see ❌, please run `setupSpreadsheet()` in Utils.gs";
+    return report;
+  } catch (e) {
+    return "❌ Connection Failed: " + e.toString();
+  }
+}
 
 function getBotStats() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
