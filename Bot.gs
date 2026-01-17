@@ -9,6 +9,99 @@ const SPREADSHEET_ID = '12SoKFk1OOyaJ2_OMaFDwS0M-wGi_pNga_wfkvO6c5No';
 
 const BOT_API = 'https://api.telegram.org/bot';
 
+const MESSAGES = {
+  ar: {
+    welcome: '👋 أهلاً بك! أرسل لي ملف Word أو Excel أو PowerPoint وسأقوم بتحويله إلى PDF.',
+    help: 'فقط قم برفع ملف (.docx, .xlsx, .pptx) وسأقوم بتحويله وتحميله لك كملف PDF.',
+    version: '🤖 إصدار البوت: 17.0 (دعم اللغات)\n📦 الحد الأقصى: 20 ملف/يوم\n🛡️ الجسر: Vercel',
+    unsupported: '❌ ملف غير مدعوم. يرجى إرسال .docx أو .xlsx أو .pptx',
+    too_large: '❌ الملف كبير جداً. يمكن للبوت معالجة ملفات حتى 20 ميجابايت فقط.',
+    processing: '📥 جاري المعالجة... يرجى الانتظار',
+    delivered: '✅ تم تسليم ملف PDF بنجاح! تم تحديث السجل.',
+    limit_reached: '⚠️ لقد وصلت للحد الأقصى المسموح به اليوم (20 ملفاً). يرجى المحاولة غداً أو طلب استثناء من المدير.',
+    select_lang: 'يرجى اختيار اللغة:',
+    lang_set: '✅ تم ضبط اللغة بنجاح.'
+  },
+  en: {
+    welcome: '👋 Welcome! Send me a Word, Excel, or PowerPoint file and I will convert it to PDF.',
+    help: 'Just upload a document (.docx, .xlsx, .pptx) and I will convert it to PDF.',
+    version: '🤖 Bot Version: 17.0 (Multi-lang Support)\n📦 Max Size: 20MB\n🛡️ Bridge: Vercel',
+    unsupported: '❌ Unsupported file. Send .docx, .xlsx, or .pptx',
+    too_large: '❌ File too large. Telegram bots can only process files up to 20MB.',
+    processing: '📥 Processing... please wait',
+    delivered: '✅ PDF Delivered! Tracking updated.',
+    limit_reached: '⚠️ Daily limit reached (20 files). Try again tomorrow or contact admin.',
+    select_lang: 'Please select your language:',
+    lang_set: '✅ Language updated successfully.'
+  }
+};
+
+function t(chatId, key) {
+  const lang = getUserLang(chatId);
+  return MESSAGES[lang][key] || MESSAGES['ar'][key];
+}
+
+function getUserLang(chatId) {
+  const cache = CacheService.getScriptCache();
+  const cachedLang = cache.get('lang_' + chatId);
+  if (cachedLang) return cachedLang;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Settings');
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(chatId)) {
+      const lang = data[i][1];
+      cache.put('lang_' + chatId, lang, 3600);
+      return lang;
+    }
+  }
+  return 'ar'; // Default
+}
+
+function setUserLang(chatId, lang) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Settings');
+  const data = sheet.getDataRange().getValues();
+  let foundRow = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(chatId)) {
+      foundRow = i + 1;
+      break;
+    }
+  }
+
+  if (foundRow === -1) {
+    sheet.appendRow([chatId, lang]);
+  } else {
+    sheet.getRange(foundRow, 2).setValue(lang);
+  }
+  
+  CacheService.getScriptCache().put('lang_' + chatId, lang, 3600);
+}
+
+function sendLanguageKeyboard(chatId) {
+  const url = getBotUrl() + 'sendMessage';
+  const payload = {
+    chat_id: chatId,
+    text: t(chatId, 'select_lang'),
+    reply_markup: {
+      inline_keyboard: [[
+        { text: 'العربية 🇸🇦', callback_data: 'lang_ar' },
+        { text: 'English 🇺🇸', callback_data: 'lang_en' }
+      ]]
+    }
+  };
+  
+  UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  });
+}
+
 function getBotUrl() {
   return BOT_API + BOT_TOKEN + '/';
 }
@@ -16,71 +109,180 @@ function getBotUrl() {
 function processMessage(msg) {
   console.log('processMessage called');
   const chatId = msg.chat.id;
-  const text = msg.text || ''; // Handle undefined text
-  
-  console.log('Chat ID:', chatId);
-  console.log('Text:', text || '(no text)');
-  console.log('Has document:', !!msg.document);
+  const text = msg.text || ''; 
   
   // Commands
   if (text === '/start') {
-    sendMessage(chatId, '👋 Welcome! Send me a Word, Excel, or PowerPoint file and I will convert it to PDF.');
+    sendMessage(chatId, t(chatId, 'welcome'));
     return;
   }
   
   if (text === '/help') {
-    sendMessage(chatId, 'Just upload a document (.docx, .xlsx, .pptx) and I will convert it to PDF.');
+    sendMessage(chatId, t(chatId, 'help'));
+    return;
+  }
+
+  if (text === '/lang' || text === '/language') {
+    sendLanguageKeyboard(chatId);
     return;
   }
 
   if (text === '/version') {
-    sendMessage(chatId, '🤖 Bot Version: 11.0 (Simple Mode)\n🛠️ Logic: Multi-lane Enabled\n📊 Spreadsheet: ACTIVE');
+    sendMessage(chatId, t(chatId, 'version'));
     return;
+  }
+
+  // Admin Commands
+  if (String(chatId) === String(ADMIN_ID)) {
+    if (text.startsWith('/add ')) {
+      const userToAdd = text.replace('/add ', '').trim();
+      whitelistUser(userToAdd);
+      sendMessage(chatId, '✅ تم إضافة ' + userToAdd + ' إلى قائمة الاستثناءات بنجاح.');
+      return;
+    }
+    
+    if (text === '/stats') {
+      const stats = getBotStats();
+      sendMessage(chatId, stats);
+      return;
+    }
   }
   
   // File handling
   if (msg.document) {
-    console.log('Document detected, calling handleFile');
     handleFile(chatId, msg.document);
-  } else {
-    console.log('No document in message');
+  }
+}
+
+function handleCallback(query) {
+  const chatId = query.message.chat.id;
+  const data = query.data;
+
+  if (data.startsWith('lang_')) {
+    const lang = data.split('_')[1];
+    setUserLang(chatId, lang);
+    sendMessage(chatId, t(chatId, 'lang_set'));
   }
 }
 
 function handleFile(chatId, doc) {
-  console.log('handleFile called for chatId:', chatId);
-  
   try {
-    // Validate file
     const fileName = doc.file_name;
     const ext = fileName.split('.').pop().toLowerCase();
     
     if (!['docx', 'xlsx', 'pptx', 'doc', 'xls', 'ppt'].includes(ext)) {
-      sendMessage(chatId, '❌ Unsupported file. Send .docx, .xlsx, or .pptx');
+      sendMessage(chatId, t(chatId, 'unsupported'));
       return;
     }
     
-    // Process
-    const requestId = Math.floor(Math.random() * 8999) + 1000;
-    sendMessage(chatId, '📥 Processing... (ID: ' + requestId + ')');
+    if (doc.file_size > 20 * 1024 * 1024) {
+      sendMessage(chatId, t(chatId, 'too_large'));
+      return;
+    }
+
+    const username = doc.from ? (doc.from.username ? '@' + doc.from.username : null) : null;
+    if (!checkAndIncrementLimit(chatId, username)) {
+      sendMessage(chatId, t(chatId, 'limit_reached'));
+      return;
+    }
+    
+    sendMessage(chatId, t(chatId, 'processing'));
     const fileBlob = downloadFile(doc.file_id);
-    
-    // Convert
     const pdfBlob = convertToPdf(fileBlob, fileName);
-    
-    // Send
     sendDocument(chatId, pdfBlob);
-    
-    // Log to Spreadsheet
     logToSheet(chatId, fileName);
-    
-    // Final Confirmation
-    sendMessage(chatId, '✅ PDF Delivered! Tracking updated.');
+    sendMessage(chatId, t(chatId, 'delivered'));
     
   } catch (error) {
-    console.error('!!! handleFile ERROR:', error.toString());
-    sendMessage(chatId, '❌ CRASH: ' + error.toString());
+    sendMessage(chatId, 'Error: ' + error.toString());
   }
+}
+
+// === ADMIN HELPERS ===
+
+function getBotStats() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const logSheet = ss.getSheetByName('Logs');
+  const limitSheet = ss.getSheetByName('Limits');
+  
+  const totalConversions = logSheet.getLastRow() - 1;
+  const activeUsersToday = limitSheet.getLastRow() - 1;
+  
+  return `📊 *إحصائيات البوت:*\n\n` +
+         `✅ إجمالي التحويلات: ${totalConversions}\n` +
+         `👥 مستخدمو اليوم: ${activeUsersToday}\n` +
+         `🛡️ نظام الجسر: يعمل بنجاح`;
+}
+
+function setBotCommands() {
+  const url = getBotUrl() + 'setMyCommands';
+  const payload = {
+    commands: [
+      { command: 'start', description: 'ابدأ المحادثة / Start' },
+      { command: 'help', description: 'تعليمات الاستخدام / Help' },
+      { command: 'lang', description: 'تغيير اللغة / Change Language' },
+      { command: 'version', description: 'حالة البوت والإصدار / Version' }
+    ]
+  };
+  
+  return UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  });
+}
+
+function whitelistUser(identifier) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Whitelist');
+  sheet.appendRow([identifier, new Date()]);
+}
+
+function isWhitelisted(chatId, username) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Whitelist');
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    const entry = String(data[i][0]);
+    if (entry === String(chatId) || (username && entry === String(username))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkAndIncrementLimit(chatId, username) {
+  // If admin or whitelisted, skip limits
+  if (String(chatId) === String(ADMIN_ID)) return true;
+  if (isWhitelisted(chatId, username)) return true;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Limits');
+  const today = Utilities.formatDate(new Date(), "GMT+3", "yyyy-MM-dd");
+  const data = sheet.getDataRange().getValues();
+  
+  let userRowIndex = -1;
+  let currentCount = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = Utilities.formatDate(data[i][0], "GMT+3", "yyyy-MM-dd");
+    if (rowDate === today && String(data[i][1]) === String(chatId)) {
+      userRowIndex = i + 1;
+      currentCount = data[i][2];
+      break;
+    }
+  }
+
+  if (currentCount >= 20) return false;
+
+  if (userRowIndex === -1) {
+    sheet.appendRow([new Date(), chatId, 1]);
+  } else {
+    sheet.getRange(userRowIndex, 3).setValue(currentCount + 1);
+  }
+  
+  return true;
 }
 
 function logToSheet(chatId, fileName) {
@@ -89,18 +291,18 @@ function logToSheet(chatId, fileName) {
     let sheet = ss.getSheetByName('Logs');
     
     if (!sheet) {
-      throw new Error('Tab named "Logs" not found in your spreadsheet! Please run setupSpreadsheet() first.');
+      throw new Error('لم يتم العثور على ورقة "Logs" في جدول البيانات! يرجى تشغيل setupSpreadsheet() أولاً.');
     }
     
     sheet.appendRow([
       new Date(),
       chatId,
       fileName,
-      'Success'
+      'نجاح'
     ]);
   } catch (e) {
     console.error('Logging failed:', e.toString());
-    sendMessage(chatId, '⚠️ Spreadsheet Log Failed: ' + e.toString());
+    sendMessage(chatId, '⚠️ فشل تسجيل البيانات في جدول البيانات: ' + e.toString());
   }
 }
 
@@ -111,22 +313,24 @@ function sendMessage(chatId, text) {
     text: text
   };
   
-  UrlFetchApp.fetch(url, {
+  return UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify(payload)
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   });
 }
 
 function sendDocument(chatId, blob) {
   const url = getBotUrl() + 'sendDocument';
   
-  UrlFetchApp.fetch(url, {
+  return UrlFetchApp.fetch(url, {
     method: 'post',
     payload: {
       chat_id: String(chatId),
       document: blob
-    }
+    },
+    muteHttpExceptions: true
   });
 }
 
@@ -135,10 +339,13 @@ function downloadFile(fileId) {
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({ file_id: fileId })
+    payload: JSON.stringify({ file_id: fileId }),
+    muteHttpExceptions: true
   });
   
   const result = JSON.parse(response.getContentText());
+  if (!result.ok) throw new Error('Telegram Download Error: ' + result.description);
+  
   const filePath = result.result.file_path;
   const downloadUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
   

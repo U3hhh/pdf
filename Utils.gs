@@ -74,7 +74,7 @@ function resetBot() {
 }
 
 function startWebhook() {
-  const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwiSSfx6a2cpc3zxdn1dUUTLfTC1j4haInLdgF-Iw5B3V61zbcpPnFT1pnSesAz5VT6/exec';
+  const WEBHOOK_URL = 'https://pdf-brown-beta.vercel.app/';
   
   console.log('Setting webhook to:', WEBHOOK_URL);
   
@@ -211,7 +211,31 @@ function setupSpreadsheet() {
     // Add a test row immediately
     sheet.appendRow([new Date(), 'SETUP_TEST', '---', 'SYSTEM_RESET']);
     
-    console.log('✅ Spreadsheet Setup Complete. Check for row 2!');
+    // 2. Setup Limits Sheet
+    let limitSheet = ss.getSheetByName('Limits');
+    if (!limitSheet) {
+      limitSheet = ss.insertSheet('Limits');
+      limitSheet.appendRow(['Date', 'Chat ID', 'Count']);
+      limitSheet.getRange('A1:C1').setFontWeight('bold').setBackground('#EFEFEF');
+    }
+
+    // 3. Setup Whitelist Sheet
+    let whitelistSheet = ss.getSheetByName('Whitelist');
+    if (!whitelistSheet) {
+      whitelistSheet = ss.insertSheet('Whitelist');
+      whitelistSheet.appendRow(['Identifier (ID or @Username)', 'Added Date']);
+      whitelistSheet.getRange('A1:B1').setFontWeight('bold').setBackground('#EFEFEF');
+    }
+    
+    // 4. Setup Settings Sheet (for Language)
+    let settingsSheet = ss.getSheetByName('Settings');
+    if (!settingsSheet) {
+      settingsSheet = ss.insertSheet('Settings');
+      settingsSheet.appendRow(['Chat ID', 'Language']);
+      settingsSheet.getRange('A1:B1').setFontWeight('bold').setBackground('#EFEFEF');
+    }
+    
+    console.log('✅ Spreadsheet Setup Complete. Check for all tabs!');
     SpreadsheetApp.flush(); // Force write to disk
     return "SUCCESS: Headers added and test row written.";
   } catch (e) {

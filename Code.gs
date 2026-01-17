@@ -20,6 +20,8 @@ function doPost(e) {
     // 2. PROCESS
     if (update.message) {
       processMessage(update.message);
+    } else if (update.callback_query) {
+      handleCallback(update.callback_query);
     }
     
     return ContentService.createTextOutput('OK');
