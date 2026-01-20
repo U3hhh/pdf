@@ -525,6 +525,7 @@ function getUserUsage(chatId) {
 }
 
 function logEvent(type, details, status, from) {
+  if (PropertiesService.getScriptProperties().getProperty('LOGGING_ENABLED') === 'false') return;
   try {
     const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Logs');

@@ -79,7 +79,8 @@ function doGet(e) {
       health: {
         token: !!props.getProperty('BOT_TOKEN'),
         admin: !!props.getProperty('ADMIN_ID'),
-        spreadsheet: !!props.getProperty('SPREADSHEET_ID')
+        spreadsheet: !!props.getProperty('SPREADSHEET_ID'),
+        loggingEnabled: props.getProperty('LOGGING_ENABLED') !== 'false'
       },
       logs: []
     };
@@ -125,6 +126,25 @@ function doGet(e) {
     } catch (err) {
       return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
     }
+  }
+
+  if (action === 'clear_logs') {
+    try {
+      const ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
+      const sheet = ss.getSheetByName('Logs');
+      if (sheet && sheet.getLastRow() > 1) {
+        sheet.deleteRows(2, sheet.getLastRow() - 1);
+      }
+      return ContentService.createTextOutput('Logs cleared successfully').setMimeType(ContentService.MimeType.TEXT);
+    } catch (err) {
+      return ContentService.createTextOutput('Error clearing logs: ' + err.toString()).setMimeType(ContentService.MimeType.TEXT);
+    }
+  }
+
+  if (action === 'toggle_logging') {
+    const currentState = props.getProperty('LOGGING_ENABLED') !== 'false'; // Default to true
+    props.setProperty('LOGGING_ENABLED', !currentState);
+    return ContentService.createTextOutput(!currentState ? 'Logging Started' : 'Logging Stopped').setMimeType(ContentService.MimeType.TEXT);
   }
 
   if (action === 'clear_cache') {

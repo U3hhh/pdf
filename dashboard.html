@@ -328,10 +328,18 @@
                         <span>Database (Sheets)</span>
                         <span id="health-db">...</span>
                     </div>
+                    <div class="health-stat">
+                        <span>Saving Logs</span>
+                        <span id="logging-status">...</span>
+                    </div>
                 </div>
 
                 <div class="card">
                     <div class="card-title">Tools & Control</div>
+                    <button id="toggle-logging-btn" class="btn" onclick="triggerAction('toggle_logging')">⏸️ Stop
+                        Logging</button>
+                    <button class="btn btn-ghost" onclick="triggerAction('clear_logs')">🗑️ Clear Spreadsheet
+                        Logs</button>
                     <button class="btn btn-green" onclick="triggerAction('send_test')">🚀 Send Test Message</button>
                     <button class="btn" onclick="triggerAction('clear_cache')">🧹 Clear Bot Cache</button>
                     <button class="btn btn-ghost" onclick="openDevLogs()">🔍 View GAS Executions</button>
@@ -414,6 +422,12 @@
                 document.getElementById('health-token').innerHTML = data.health.token ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
                 document.getElementById('health-admin').innerHTML = data.health.admin ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
                 document.getElementById('health-db').innerHTML = data.health.spreadsheet ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
+
+                const logEnabled = data.health.loggingEnabled;
+                document.getElementById('logging-status').innerHTML = logEnabled ? '<span style="color:var(--success)">▶️ Active</span>' : '<span style="color:var(--error)">⏸️ Paused</span>';
+                const toggleBtn = document.getElementById('toggle-logging-btn');
+                toggleBtn.innerText = logEnabled ? '⏸️ Stop Logging' : '▶️ Resume Logging';
+                toggleBtn.style.background = logEnabled ? '#ef4444' : 'var(--success)';
             }
 
             // Logs
