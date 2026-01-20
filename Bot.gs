@@ -4,14 +4,23 @@
 
 // Configuration Utils
 function getProp(key) {
-  return PropertiesService.getScriptProperties().getProperty(key);
+  try {
+    return PropertiesService.getScriptProperties().getProperty(key);
+  } catch (e) {
+    console.error('Error fetching property:', key, e.toString());
+    return null;
+  }
 }
 
-const BOT_TOKEN = getProp('BOT_TOKEN');
-const ADMIN_ID = getProp('ADMIN_ID');
-const SPREADSHEET_ID = getProp('SPREADSHEET_ID');
+function getBotToken() { return getProp('BOT_TOKEN'); }
+function getAdminId() { return getProp('ADMIN_ID'); }
+function getSpreadsheetId() { return getProp('SPREADSHEET_ID'); }
 
-const BOT_API = 'https://api.telegram.org/bot';
+function getBotUrl() {
+  const token = getBotToken();
+  if (!token) console.error('CRITICAL: BOT_TOKEN is null/empty');
+  return 'https://api.telegram.org/bot' + token + '/';
+}
 
 const MESSAGES = {
   ar: {
@@ -55,7 +64,7 @@ function getUserLang(chatId) {
   if (cachedLang) return cachedLang;
 
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Settings');
     if (!sheet) return 'ar'; // Default if sheet missing
 
@@ -74,7 +83,7 @@ function getUserLang(chatId) {
 }
 
 function setUserLang(chatId, lang) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(getSpreadsheetId());
   const sheet = ss.getSheetByName('Settings');
   const data = sheet.getDataRange().getValues();
   let foundRow = -1;
@@ -128,7 +137,7 @@ function processMessage(msg) {
   
   // Commands & Keyboard Buttons
   if (text === '/start' || text === '🏠 Main Menu') {
-    if (String(chatId) === String(ADMIN_ID)) {
+    if (String(chatId) === String(getAdminId())) {
       sendAdminMenu(chatId, "🛠️ Welcome, Admin! Accessing management dashboard...");
     } else {
       sendMainMenu(chatId, t(chatId, 'welcome'));
@@ -152,7 +161,7 @@ function processMessage(msg) {
   }
 
   // Admin Specific Buttons
-  if (String(chatId) === String(ADMIN_ID)) {
+  if (String(chatId) === String(getAdminId())) {
     if (text === '📊 Statistics') {
       sendMessage(chatId, getBotStats());
       return;
@@ -181,7 +190,7 @@ function processMessage(msg) {
   }
 
   // Admin Text Commands
-  if (String(chatId) === String(ADMIN_ID)) {
+  if (String(chatId) === String(getAdminId())) {
     if (text.startsWith('/add ')) {
       const userToAdd = text.replace('/add ', '').trim();
       whitelistUser(userToAdd);
@@ -224,7 +233,7 @@ function processMessage(msg) {
 function logUser(from) {
   if (!from) return;
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Users');
     if (!sheet) return;
 
@@ -306,7 +315,7 @@ function handleFile(chatId, doc, from) {
 
 function sendBroadcast(text) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Users');
     if (!sheet) return "❌ Users sheet not found.";
 
@@ -341,7 +350,7 @@ function sendBroadcast(text) {
 
 function checkSpreadsheetHealth() {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheets = ['Logs', 'Limits', 'Whitelist', 'Settings', 'Users'];
     let report = "🔍 **Spreadsheet Health Check:**\n\n";
     
@@ -358,7 +367,7 @@ function checkSpreadsheetHealth() {
 }
 
 function getBotStats() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(getSpreadsheetId());
   const logSheet = ss.getSheetByName('Logs');
   const limitSheet = ss.getSheetByName('Limits');
   const usersSheet = ss.getSheetByName('Users');
@@ -408,14 +417,14 @@ function setBotCommands() {
 }
 
 function whitelistUser(identifier) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(getSpreadsheetId());
   const sheet = ss.getSheetByName('Whitelist');
   sheet.appendRow([identifier, new Date()]);
 }
 
 function isWhitelisted(chatId, username) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Whitelist');
     if (!sheet) return false;
 
@@ -434,11 +443,11 @@ function isWhitelisted(chatId, username) {
 
 function checkAndIncrementLimit(chatId, username) {
   // If admin or whitelisted, skip limits
-  if (String(chatId) === String(ADMIN_ID)) return true;
+  if (String(chatId) === String(getAdminId())) return true;
   if (isWhitelisted(chatId, username)) return true;
 
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Limits');
     if (!sheet) return true; // Fail open if limits sheet is missing
 
@@ -473,10 +482,10 @@ function checkAndIncrementLimit(chatId, username) {
 }
 
 function getUserUsage(chatId) {
-  if (String(chatId) === String(ADMIN_ID)) return "Unlimited";
+  if (String(chatId) === String(getAdminId())) return "Unlimited";
   
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Limits');
     if (!sheet) return "0";
 
@@ -497,7 +506,7 @@ function getUserUsage(chatId) {
 
 function logToSheet(from, fileName) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     let sheet = ss.getSheetByName('Logs');
     
     if (!sheet) {
@@ -520,7 +529,7 @@ function logToSheet(from, fileName) {
 // Diagnostic helper
 function debugSheet(chatId, from) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Logs');
     if (!sheet) return "❌ Logs sheet not found.";
     
@@ -624,8 +633,7 @@ function downloadFile(fileId) {
   const result = JSON.parse(response.getContentText());
   if (!result.ok) throw new Error('Telegram Download Error: ' + result.description);
   
-  const filePath = result.result.file_path;
-  const token = BOT_TOKEN || getProp('BOT_TOKEN');
+  const token = getBotToken();
   const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
   
   return UrlFetchApp.fetch(downloadUrl).getBlob();

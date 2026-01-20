@@ -13,46 +13,52 @@ function doPost(e) {
     const gasSecret = props.getProperty('GAS_SECRET');
     const incomingSecret = e.parameter.secret || '';
 
-    // Log the event for debugging (view in Executions tab)
-    console.log('Incoming update. Secret valid:', (gasSecret === incomingSecret));
+    console.log('--- NEW INCOMING REQUEST ---');
+    console.log('Secret valid:', (gasSecret === incomingSecret));
 
     if (gasSecret && incomingSecret !== gasSecret) {
       console.warn('Unauthorized access attempt: Secret mismatch');
       return ContentService.createTextOutput('Unauthorized').setMimeType(ContentService.MimeType.TEXT);
     }
 
-    const botToken = props.getProperty('BOT_TOKEN');
-    if (!botToken) {
-      console.error('CRITICAL: BOT_TOKEN is missing in Script Properties');
-      return ContentService.createTextOutput('Missing Token');
-    }
-
     const contents = e.postData.contents;
-    if (!contents) return ContentService.createTextOutput('No content');
+    if (!contents) {
+      console.error('No postData contents found');
+      return ContentService.createTextOutput('No content');
+    }
     
     const update = JSON.parse(contents);
-    if (!update || !update.update_id) return ContentService.createTextOutput('OK');
+    console.log('Update Content:', JSON.stringify(update));
+
+    if (!update || !update.update_id) {
+      console.warn('Invalid update format');
+      return ContentService.createTextOutput('OK');
+    }
     
     const uid = 'update_' + update.update_id;
     const cache = CacheService.getScriptCache();
     
-    // 2. Deduplication
     if (cache.get(uid)) {
+      console.log('Duplicate update ignored:', update.update_id);
       return ContentService.createTextOutput('OK');
     }
     cache.put(uid, '1', 600);
     
-    // 3. Process
+    // Check if processMessage exists and is callable
     if (update.message) {
+      console.log('Routing to processMessage. Message text:', update.message.text);
       processMessage(update.message);
     } else if (update.callback_query) {
+      console.log('Routing to handleCallback');
       handleCallback(update.callback_query);
     }
     
+    console.log('Processing completed for update:', update.update_id);
     return ContentService.createTextOutput('OK');
     
   } catch (error) {
-    console.error('doPost error:', error.toString());
+    console.error('CRITICAL doPost error:', error.toString());
+    console.error('Stack:', error.stack);
     return ContentService.createTextOutput('OK');
   }
 }

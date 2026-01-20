@@ -5,7 +5,7 @@
 // === WEBHOOK MANAGEMENT ===
 
 function checkWebhook() {
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`;
+  const url = `https://api.telegram.org/bot${getBotToken()}/getWebhookInfo`;
   const response = UrlFetchApp.fetch(url);
   const info = JSON.parse(response.getContentText());
   
@@ -45,7 +45,7 @@ function checkWebhook() {
 }
 
 function stopWebhook() {
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`;
+  const url = `https://api.telegram.org/bot${getBotToken()}/deleteWebhook`;
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
@@ -75,7 +75,7 @@ function resetBot() {
 
 function startWebhook(manualUrl) {
   const props = PropertiesService.getScriptProperties();
-  const token = props.getProperty('BOT_TOKEN');
+  const token = getBotToken();
   const urlToSet = manualUrl || props.getProperty('VERCEL_URL');
   
   if (!token || !urlToSet) {
@@ -123,7 +123,7 @@ function testBot() {
   console.log('Testing bot configuration...\n');
   
   // Check BOT_TOKEN
-  console.log('BOT_TOKEN:', BOT_TOKEN ? '✅ Set' : '❌ Missing');
+  console.log('BOT_TOKEN:', getBotToken() ? '✅ Set' : '❌ Missing');
   
   // Check Drive API
   try {
@@ -145,7 +145,7 @@ function sendTestMessage() {
   const MY_CHAT_ID = '231207088';
   
   try {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    const url = `https://api.telegram.org/bot${getBotToken()}/sendMessage`;
     const response = UrlFetchApp.fetch(url, {
       method: 'post',
       contentType: 'application/json',
@@ -217,7 +217,7 @@ function verifyDeployment() {
 function setupSpreadsheet() {
   console.log('--- STARTING AGGRESSIVE SPREADSHEET SETUP ---');
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     // 1. Setup Logs Sheet
     let logSheet = ss.getSheetByName('Logs');
     if (!logSheet) {
