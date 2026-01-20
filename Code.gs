@@ -65,17 +65,30 @@ function doPost(e) {
 
 function doGet(e) {
   const props = PropertiesService.getScriptProperties();
+  const action = e.parameter.action;
+  
+  if (action === 'clear_cache') {
+    CacheService.getScriptCache().removeAll(['debug_status']);
+    return ContentService.createTextOutput('Cache cleared successfully').setMimeType(ContentService.MimeType.TEXT);
+  }
+
   const token = props.getProperty('BOT_TOKEN');
   const adminId = props.getProperty('ADMIN_ID');
   const ssId = props.getProperty('SPREADSHEET_ID');
   const secret = props.getProperty('GAS_SECRET');
   
   let tgStatus = 'Checking...';
+  let botUsername = '';
   if (token) {
     try {
       const resp = UrlFetchApp.fetch(`https://api.telegram.org/bot${token}/getMe`);
       const data = JSON.parse(resp.getContentText());
-      tgStatus = data.ok ? `<b class="ok">✅ Connected to @${data.result.username}</b>` : `<b class="error">❌ Telegram Error: ${data.description}</b>`;
+      if (data.ok) {
+        botUsername = data.result.username;
+        tgStatus = `<b class="ok">✅ Connected to @${botUsername}</b>`;
+      } else {
+        tgStatus = `<b class="error">❌ Telegram Error: ${data.description}</b>`;
+      }
     } catch (err) {
       tgStatus = `<b class="error">❌ Connection Failed: ${err.toString()}</b>`;
     }
@@ -102,6 +115,7 @@ function doGet(e) {
           ul{list-style:none;padding:0}
           li{padding:12px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
           .ok{color:#27ae60} .error{color:#e74c3c} .label{font-weight:bold;color:#7f8c8d}
+          .btn{background:#3498db;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;display:inline-block;margin-top:20px}
         </style>
       </head>
       <body>
@@ -110,12 +124,13 @@ function doGet(e) {
           <ul>
             <li><span class="label">Telegram Bot:</span> ${tgStatus}</li>
             <li><span class="label">Google Drive:</span> ${driveStatus}</li>
-            <li><span class="label">Admin ID:</span> ${adminId ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
+            <li><span class="label">Admin ID:</span> ${adminId ? `<b class="ok">✅ ${adminId}</b>` : '<b class="error">❌ Missing</b>'}</li>
             <li><span class="label">Spreadsheet ID:</span> ${ssId ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
             <li><span class="label">Security Secret:</span> ${secret ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
           </ul>
-          <div style="margin-top:20px;font-size:13px;color:#95a5a6;text-align:center">
-            Refresh this page after updating <b>Script Properties</b>.
+          <div style="margin-top:20px;text-align:center">
+            <a href="?action=clear_cache" class="btn">🧹 Clear Script Cache</a>
+            <p style="font-size:12px;color:#95a5a6;margin-top:10px">Refresh this page after updating <b>Script Properties</b>.</p>
           </div>
         </div>
       </body>
