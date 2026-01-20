@@ -285,8 +285,7 @@ function setupSpreadsheet() {
     if (!logSheet) {
       logSheet = ss.insertSheet('Logs');
     }
-    const logHeaders = [['Date', 'User ID', 'Username', 'First Name', 'File Name', 'Status']];
-    logSheet.getRange(1, 1, 1, 6).setValues(logHeaders);
+    logSheet.getRange(1, 1, 1, 6).setValues([['Date', 'User ID', 'Username', 'Type', 'Details', 'Status']]);
     logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#EFEFEF');
     logSheet.setFrozenRows(1);
 

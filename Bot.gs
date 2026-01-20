@@ -129,7 +129,8 @@ function processMessage(msg) {
   const chatId = msg.chat.id;
   const text = msg.text || '';
   
-  console.log(`Processing message from ${chatId}: "${text}"`);
+  // Logger: Track incoming message
+  logEvent('INBOUND', text || (msg.document ? 'File: ' + msg.document.file_name : 'Update'), 'OK', msg.from);
 
   // 1. Spreadsheet-free Ping Test
   if (text.toLowerCase() === '/ping') {
@@ -287,6 +288,7 @@ function handleCallback(query) {
   const data = query.data;
 
   if (data.startsWith('lang_')) {
+    logEvent('INBOUND', 'Callback: ' + data, 'OK', query.from);
     const lang = data.split('_')[1];
     setUserLang(chatId, lang);
     sendMessage(chatId, t(chatId, 'lang_set'));
@@ -318,7 +320,7 @@ function handleFile(chatId, doc, from) {
     const fileBlob = downloadFile(doc.file_id);
     const pdfBlob = convertToPdf(fileBlob, fileName);
     sendDocument(chatId, pdfBlob);
-    logToSheet(from, fileName); // Passing full user object
+    logEvent('CONVERSION', fileName, 'Success', from);
     
     // Show usage progress
     const usage = getUserUsage(chatId);
@@ -522,25 +524,22 @@ function getUserUsage(chatId) {
   return "0";
 }
 
-function logToSheet(from, fileName) {
+function logEvent(type, details, status, from) {
   try {
     const ss = SpreadsheetApp.openById(getSpreadsheetId());
-    let sheet = ss.getSheetByName('Logs');
-    
-    if (!sheet) {
-      throw new Error('Tab named "Logs" not found.');
-    }
-    
+    const sheet = ss.getSheetByName('Logs');
+    if (!sheet) return;
+
     sheet.appendRow([
       new Date(),
-      from ? String(from.id) : '---',
-      from ? (from.username ? '@' + from.username : '---') : '---',
-      from ? (from.first_name || '---') : '---',
-      fileName,
-      'Success'
+      from ? String(from.id) : (getAdminId() || 'SYSTEM'),
+      from ? (from.username ? '@' + from.username : '---') : 'BOT',
+      type,
+      details,
+      status
     ]);
   } catch (e) {
-    console.error('Logging failed:', e.toString());
+    console.error('logEvent failed:', e.toString());
   }
 }
 
@@ -581,15 +580,19 @@ function fetchFromTelegram(method, payload) {
   
   if (statusCode !== 200) {
     console.error(`Telegram ERROR [${method}]:`, content);
-    logSystemEvent('OUTBOUND', method, statusCode, content.substring(0, 1000));
+    logEvent('OUTBOUND', method, 'ERROR: ' + statusCode, payload.chat_id ? {id: payload.chat_id} : null);
   } else {
     const resObj = JSON.parse(content);
     if (!resObj.ok) {
       console.error(`Telegram JSON ERROR [${method}]:`, resObj.description);
-      logSystemEvent('OUTBOUND', method, 'JSON_ERROR', resObj.description);
+      logEvent('OUTBOUND', method, 'FAIL: ' + resObj.description, payload.chat_id ? {id: payload.chat_id} : null);
     } else {
       console.log(`Telegram SUCCESS [${method}]`);
-      logSystemEvent('OUTBOUND', method, 'SUCCESS', 'OK');
+      // We don't log EVERY success to avoid sheet bloating, but we can if the user wants.
+      // For now, let's log main interactions.
+      if (['sendDocument', 'setMyCommands'].includes(method)) {
+         logEvent('OUTBOUND', method, 'Success', payload.chat_id ? {id: payload.chat_id} : null);
+      }
     }
   }
   

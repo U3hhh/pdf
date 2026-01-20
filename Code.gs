@@ -89,12 +89,13 @@ function doGet(e) {
       const sheet = ss.getSheetByName('Logs');
       if (sheet) {
         const rows = sheet.getDataRange().getValues();
-        // Return last 20 logs
-        data.logs = rows.slice(-20).reverse().map(row => ({
+        // Return last 30 logs (expanded)
+        data.logs = rows.slice(-30).reverse().map(row => ({
           timestamp: row[0],
           userId: row[1],
           username: row[2],
-          fileName: row[4],
+          type: row[3],
+          details: row[4],
           status: row[5]
         }));
       }
