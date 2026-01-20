@@ -324,10 +324,22 @@
                         <span>URL Fetches</span>
                         <span id="quota-fetch">...</span>
                     </div>
-                    <div style="margin-top: 12px;">
+                    <div style="margin-top: 8px;">
                         <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
                             <div id="fetch-bar"
                                 style="height: 100%; background: var(--primary); width: 0%; border-radius: 2px; transition: 0.5s;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="health-stat"
+                        style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+                        <span>Trigger Runtime</span>
+                        <span id="quota-runtime">...</span>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                            <div id="runtime-bar"
+                                style="height: 100%; background: var(--secondary); width: 0%; border-radius: 2px; transition: 0.5s;">
                             </div>
                         </div>
                     </div>
@@ -462,6 +474,18 @@
                 const fetchBar = document.getElementById('fetch-bar');
                 fetchBar.style.width = `${fetchPercent}%`;
                 fetchBar.style.background = fetchPercent > 80 ? 'var(--error)' : (fetchPercent > 50 ? '#f59e0b' : 'var(--primary)');
+
+                // Runtime
+                const runtimeMs = data.health.runtimeCount;
+                const runtimeLimitMs = data.health.runtimeLimit;
+                const runtimeMins = (runtimeMs / 60000).toFixed(1);
+                const runtimeLimitMins = (runtimeLimitMs / 60000).toFixed(0);
+                document.getElementById('quota-runtime').innerText = `${runtimeMins} / ${runtimeLimitMins}m`;
+
+                const runtimePercent = Math.min((runtimeMs / runtimeLimitMs) * 100, 100);
+                const runtimeBar = document.getElementById('runtime-bar');
+                runtimeBar.style.width = `${runtimePercent}%`;
+                runtimeBar.style.background = runtimePercent > 80 ? 'var(--error)' : (runtimePercent > 50 ? '#f59e0b' : 'var(--secondary)');
             }
 
             // Logs

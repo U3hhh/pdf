@@ -349,11 +349,15 @@ function countResource(type) {
   if (lastReset !== today) {
     props.setProperty('QUOTA_RESET_DATE', today);
     props.setProperty('URL_FETCH_COUNT', '0');
+    props.setProperty('RUNTIME_COUNT', '0');
   }
   
   if (type === 'fetch') {
     const current = parseInt(props.getProperty('URL_FETCH_COUNT') || '0');
     props.setProperty('URL_FETCH_COUNT', (current + 1).toString());
+  } else if (type === 'runtime') {
+    const current = parseInt(props.getProperty('RUNTIME_COUNT') || '0');
+    props.setProperty('RUNTIME_COUNT', (current + arguments[1]).toString());
   }
 }
 

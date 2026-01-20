@@ -8,6 +8,7 @@
  */
 
 function doPost(e) {
+  const startTime = Date.now();
   try {
     const props = PropertiesService.getScriptProperties();
     const gasSecret = props.getProperty('GAS_SECRET');
@@ -54,11 +55,14 @@ function doPost(e) {
     }
     
     console.log('Processing completed for update:', update.update_id);
+    const duration = Date.now() - startTime;
+    countResource('runtime', duration);
     return ContentService.createTextOutput('OK');
     
   } catch (error) {
     console.error('CRITICAL doPost error:', error.toString());
-    console.error('Stack:', error.stack);
+    const duration = Date.now() - startTime;
+    countResource('runtime', duration);
     return ContentService.createTextOutput('OK');
   }
 }
@@ -84,7 +88,9 @@ function doGet(e) {
         driveUsed: DriveApp.getStorageUsed(),
         driveTotal: DriveApp.getStorageLimit(),
         fetchCount: parseInt(props.getProperty('URL_FETCH_COUNT') || '0'),
-        fetchLimit: 20000
+        fetchLimit: 20000,
+        runtimeCount: parseInt(props.getProperty('RUNTIME_COUNT') || '0'),
+        runtimeLimit: 5400000 // 90 minutes in ms
       },
       logs: []
     };
