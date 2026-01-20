@@ -181,25 +181,41 @@
             }
 
             .container {
-                padding: 20px 12px;
+                padding: 16px 8px;
             }
 
             .log-item {
-                grid-template-columns: 80px 1fr 80px;
-                gap: 8px;
+                grid-template-columns: 60px 1fr 60px;
+                gap: 6px;
+                padding: 10px 4px;
             }
 
             .log-item .user,
             .log-item .type-badge {
-                display: none;
+                display: none !important;
+            }
+
+            .timestamp {
+                font-size: 11px;
+            }
+
+            .file {
+                font-size: 12px;
             }
 
             .filter-bar {
                 flex-wrap: wrap;
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+
+            .filter-btn {
+                padding: 4px 8px;
+                font-size: 11px;
             }
 
             h1 {
-                font-size: 20px;
+                font-size: 18px;
             }
         }
 
@@ -340,10 +356,12 @@
 
         async function triggerAction(action) {
             if (!confirm(`Trigger ${action}?`)) return;
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = '⌛ Processing...';
-            btn.disabled = true;
+            const btn = window.event ? window.event.target : null;
+            const originalText = btn ? btn.innerText : '...';
+            if (btn) {
+                btn.innerText = '⌛ Processing...';
+                btn.disabled = true;
+            }
 
             try {
                 const response = await fetch(`/api/data?action=${action}`);
@@ -398,15 +416,17 @@
                 return;
             }
 
-            container.innerHTML = filtered.map(log => `
+            container.innerHTML = filtered.map(log => {
+                const isSuccess = (log.status || '').toLowerCase().includes('success') || (log.status || '').toLowerCase().includes('ok');
+                return `
                 <div class="log-item">
                     <span class="timestamp">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     <span class="user" title="${log.username || log.userId}">${log.username || 'User ' + log.userId}</span>
                     <span class="type-badge" style="color: #94a3b8; font-weight: bold; font-size: 10px;">${log.type || '---'}</span>
                     <span class="file" title="${log.details}">${log.details || '---'}</span>
-                    <span class="status ${log.status.includes('Success') || log.status.includes('OK') ? '' : 'error'}">${log.status}</span>
+                    <span class="status ${isSuccess ? '' : 'error'}">${log.status || '---'}</span>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function openDevLogs() {

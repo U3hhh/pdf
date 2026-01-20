@@ -89,14 +89,16 @@ function doGet(e) {
       const sheet = ss.getSheetByName('Logs');
       if (sheet) {
         const rows = sheet.getDataRange().getValues();
-        // Return last 30 logs (expanded)
-        data.logs = rows.slice(-30).reverse().map(row => ({
-          timestamp: row[0],
-          userId: row[1],
-          username: row[2],
-          type: row[3],
-          details: row[4],
-          status: row[5]
+        // Skip header and get last 30
+        const logRows = rows.length > 1 ? rows.slice(1) : [];
+        
+        data.logs = logRows.slice(-30).reverse().map(row => ({
+          timestamp: row[0] || new Date().toISOString(),
+          userId: row[1] || 'Unknown',
+          username: row[2] || '---',
+          type: row[3] || 'INFO',
+          details: row[4] || '---',
+          status: row[5] || 'Pending'
         }));
       }
     } catch (err) {
