@@ -181,26 +181,49 @@ function testBot() {
 
 function sendTestMessage() {
   // Replace with your Telegram user ID (231207088)
-  const MY_CHAT_ID = '231207088';
+  const MY_CHAT_ID = getAdminId();
   
   try {
-    const url = `https://api.telegram.org/bot${getBotToken()}/sendMessage`;
+    const url = getBotUrl() + 'sendMessage';
     const response = UrlFetchApp.fetch(url, {
       method: 'post',
       contentType: 'application/json',
       payload: JSON.stringify({
         chat_id: MY_CHAT_ID,
-        text: '🔧 Manual test successful! The bot can send messages.'
-      })
+        text: '🔧 Manual link test: Bot -> Telegram connection is ACTIVE!'
+      }),
+      muteHttpExceptions: true
     });
     
     const result = JSON.parse(response.getContentText());
-    console.log('Test message sent:', result.ok ? '✅' : '❌');
-    console.log('Full result:', JSON.stringify(result));
+    if (result.ok) {
+      console.log('✅ Success! Check your Telegram messages.');
+    } else {
+      console.error('❌ Telegram error:', result.description);
+      if (result.description.includes('bot_token')) console.error('TIP: Your BOT_TOKEN might be invalid.');
+    }
     return result;
   } catch (e) {
-    console.error('Test failed:', e.toString());
+    console.error('Network Error:', e.toString());
     return e;
+  }
+}
+
+/**
+ * Run this to verify your Vercel -> GAS security link
+ */
+function testSecuritySecret(providedSecret) {
+  const actualSecret = PropertiesService.getScriptProperties().getProperty('GAS_SECRET');
+  if (!actualSecret) {
+    console.error('❌ No GAS_SECRET found in Script Properties.');
+    return;
+  }
+  if (providedSecret === actualSecret) {
+    console.log('✅ SECRET MATCH! Your Vercel bridge is properly authorized.');
+  } else {
+    console.warn('❌ SECRET MISMATCH! Bridge will be blocked.');
+    console.log('Property has:', actualSecret);
+    console.log('You provided:', providedSecret);
   }
 }
 
