@@ -341,23 +341,28 @@ function setupSpreadsheet() {
   }
 }
 
-function countResource(type) {
-  const props = PropertiesService.getScriptProperties();
-  const today = new Date().toDateString();
-  const lastReset = props.getProperty('QUOTA_RESET_DATE');
-  
-  if (lastReset !== today) {
-    props.setProperty('QUOTA_RESET_DATE', today);
-    props.setProperty('URL_FETCH_COUNT', '0');
-    props.setProperty('RUNTIME_COUNT', '0');
-  }
-  
-  if (type === 'fetch') {
-    const current = parseInt(props.getProperty('URL_FETCH_COUNT') || '0');
-    props.setProperty('URL_FETCH_COUNT', (current + 1).toString());
-  } else if (type === 'runtime') {
-    const current = parseInt(props.getProperty('RUNTIME_COUNT') || '0');
-    props.setProperty('RUNTIME_COUNT', (current + arguments[1]).toString());
+function countResource(type, value) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const today = new Date().toDateString();
+    const lastReset = props.getProperty('QUOTA_RESET_DATE');
+    
+    if (lastReset !== today) {
+      props.setProperty('QUOTA_RESET_DATE', today);
+      props.setProperty('URL_FETCH_COUNT', '0');
+      props.setProperty('RUNTIME_COUNT', '0');
+    }
+    
+    if (type === 'fetch') {
+      const current = parseInt(props.getProperty('URL_FETCH_COUNT') || '0');
+      props.setProperty('URL_FETCH_COUNT', (current + 1).toString());
+    } else if (type === 'runtime') {
+      const current = parseInt(props.getProperty('RUNTIME_COUNT') || '0');
+      const addValue = parseInt(value) || 0;
+      props.setProperty('RUNTIME_COUNT', (current + addValue).toString());
+    }
+  } catch (err) {
+    console.error('countResource failed:', err.toString());
   }
 }
 

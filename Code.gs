@@ -46,12 +46,17 @@ function doPost(e) {
     cache.put(uid, '1', 600);
     
     // Check if processMessage exists and is callable
-    if (update.message) {
-      console.log('Routing to processMessage. Message text:', update.message.text);
-      processMessage(update.message);
-    } else if (update.callback_query) {
-      console.log('Routing to handleCallback');
-      handleCallback(update.callback_query);
+    try {
+      if (update.message) {
+        console.log('Routing to processMessage. ID:', update.update_id);
+        processMessage(update.message);
+      } else if (update.callback_query) {
+        console.log('Routing to handleCallback. ID:', update.update_id);
+        handleCallback(update.callback_query);
+      }
+    } catch (routeError) {
+      console.error('Routing Error (processMessage/handleCallback):', routeError.toString());
+      logEvent('SYSTEM', 'Routing Error: ' + routeError.toString(), 'ERROR');
     }
     
     console.log('Processing completed for update:', update.update_id);
@@ -117,33 +122,6 @@ function doGet(e) {
     }
 
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'get_user_lang') {
-    return ContentService.createTextOutput(JSON.stringify({ lang: getUserLang(e.parameter.userId) })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'set_user_lang') {
-    setUserLang(e.parameter.userId, e.parameter.lang);
-    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'log_user') {
-    logUser({ id: e.parameter.userId, username: e.parameter.username, first_name: e.parameter.firstName });
-    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'log_event') {
-    logEvent(e.parameter.type, e.parameter.details, e.parameter.status, { id: e.parameter.userId, username: e.parameter.username });
-    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'get_stats') {
-    return ContentService.createTextOutput(JSON.stringify({ text: getBotStats() })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'get_health_report') {
-    return ContentService.createTextOutput(JSON.stringify({ text: checkSpreadsheetHealth() })).setMimeType(ContentService.MimeType.JSON);
   }
 
   if (action === 'login') {
