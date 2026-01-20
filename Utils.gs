@@ -119,6 +119,45 @@ function initializeProjectProperties() {
 
 // === TESTING ===
 
+/**
+ * Run this function and check Logs to see if everything is set up correctly
+ */
+function debugEnvironment() {
+  console.log('--- STARTING ENVIRONMENT DIAGNOSTIC ---');
+  
+  const token = getBotToken();
+  const adminId = getAdminId();
+  const ssId = getSpreadsheetId();
+  const secret = PropertiesService.getScriptProperties().getProperty('GAS_SECRET');
+  const vercel = PropertiesService.getScriptProperties().getProperty('VERCEL_URL');
+  
+  console.log('1. BOT_TOKEN:', token ? (token.substring(0, 5) + '...' + token.substring(token.length - 4)) : '❌ MISSING');
+  console.log('2. ADMIN_ID:', adminId || '❌ MISSING');
+  console.log('3. SPREADSHEET_ID:', ssId || '❌ MISSING');
+  console.log('4. GAS_SECRET:', secret ? '✅ Set' : '❌ MISSING');
+  console.log('5. VERCEL_URL:', vercel || '❌ MISSING');
+  
+  if (ssId) {
+    try {
+      const ss = SpreadsheetApp.openById(ssId);
+      console.log('6. Spreadsheet Access: ✅ Success (' + ss.getName() + ')');
+    } catch (e) {
+      console.error('6. Spreadsheet Access: ❌ FAILED - ' + e.toString());
+    }
+  }
+  
+  if (token) {
+    try {
+      const resp = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/getMe');
+      console.log('7. Telegram Token Validity: ✅ Valid');
+    } catch (e) {
+      console.error('7. Telegram Token Validity: ❌ INVALID TOKEN - ' + e.toString());
+    }
+  }
+  
+  console.log('--- DIAGNOSTIC COMPLETE ---');
+}
+
 function testBot() {
   console.log('Testing bot configuration...\n');
   

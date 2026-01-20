@@ -554,8 +554,17 @@ function sendMessage(chatId, text) {
     muteHttpExceptions: true
   });
 
-  const resObj = JSON.parse(response.getContentText());
-  if (!resObj.ok) console.error('Telegram Error:', resObj.description);
+  const statusCode = response.getResponseCode();
+  const content = response.getContentText();
+  
+  if (statusCode !== 200) {
+    console.error('Telegram Error! Status:', statusCode, 'Body:', content);
+  } else {
+    const resObj = JSON.parse(content);
+    if (!resObj.ok) console.error('Telegram JSON Error:', resObj.description);
+    else console.log('Message sent successfully to:', chatId);
+  }
+  
   return response;
 }
 
