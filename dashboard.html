@@ -39,7 +39,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 16px;
         }
 
         h1 {
@@ -163,6 +165,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: #cbd5e1;
         }
 
         .file {
@@ -170,6 +173,34 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        @media (max-width: 850px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 20px 12px;
+            }
+
+            .log-item {
+                grid-template-columns: 80px 1fr 80px;
+                gap: 8px;
+            }
+
+            .log-item .user,
+            .log-item .type-badge {
+                display: none;
+            }
+
+            .filter-bar {
+                flex-wrap: wrap;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
         }
 
         .status {
@@ -371,7 +402,7 @@
                 <div class="log-item">
                     <span class="timestamp">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     <span class="user" title="${log.username || log.userId}">${log.username || 'User ' + log.userId}</span>
-                    <span style="color: #94a3b8; font-weight: bold; font-size: 10px;">${log.type || '---'}</span>
+                    <span class="type-badge" style="color: #94a3b8; font-weight: bold; font-size: 10px;">${log.type || '---'}</span>
                     <span class="file" title="${log.details}">${log.details || '---'}</span>
                     <span class="status ${log.status.includes('Success') || log.status.includes('OK') ? '' : 'error'}">${log.status}</span>
                 </div>
