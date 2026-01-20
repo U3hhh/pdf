@@ -12,12 +12,13 @@ export default async function handler(req, res) {
 
     try {
         // 2. Forward the update to Apps Script
-        await fetch(APPS_SCRIPT_URL, {
+        // NOTE: We use query params because custom headers are lost during Google's 302 redirect
+        const targetUrl = new URL(APPS_SCRIPT_URL);
+        if (GAS_SECRET) targetUrl.searchParams.set('secret', GAS_SECRET);
+
+        await fetch(targetUrl.toString(), {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-GAS-Secret': GAS_SECRET || ''
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body)
         });
 

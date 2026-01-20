@@ -538,12 +538,16 @@ function sendMessage(chatId, text) {
     text: text
   };
   
-  return UrlFetchApp.fetch(url, {
+  const response = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
+
+  const resObj = JSON.parse(response.getContentText());
+  if (!resObj.ok) console.error('Telegram Error:', resObj.description);
+  return response;
 }
 
 function sendMainMenu(chatId, text) {

@@ -9,15 +9,22 @@
 
 function doPost(e) {
   try {
-    // 1. Security Check
     const props = PropertiesService.getScriptProperties();
     const gasSecret = props.getProperty('GAS_SECRET');
-    const incomingSecret = e.parameter['X-GAS-Secret'] || e.headers['X-GAS-Secret'] || '';
+    const incomingSecret = e.parameter.secret || '';
+
+    // Log the event for debugging (view in Executions tab)
+    console.log('Incoming update. Secret valid:', (gasSecret === incomingSecret));
 
     if (gasSecret && incomingSecret !== gasSecret) {
-      console.warn('Unauthorized access attempt');
-      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unauthorized' }))
-        .setMimeType(ContentService.MimeType.JSON);
+      console.warn('Unauthorized access attempt: Secret mismatch');
+      return ContentService.createTextOutput('Unauthorized').setMimeType(ContentService.MimeType.TEXT);
+    }
+
+    const botToken = props.getProperty('BOT_TOKEN');
+    if (!botToken) {
+      console.error('CRITICAL: BOT_TOKEN is missing in Script Properties');
+      return ContentService.createTextOutput('Missing Token');
     }
 
     const contents = e.postData.contents;
