@@ -131,9 +131,22 @@ function getBotUrl() {
 function processMessage(msg) {
   const chatId = msg.chat.id;
   const text = msg.text || '';
+  
+  console.log(`Processing message from ${chatId}: "${text}"`);
 
-  // Logger: Track every user who talks to the bot
-  logUser(msg.from);
+  // 1. Spreadsheet-free Ping Test
+  if (text.toLowerCase() === '/ping') {
+    console.log('Ping command detected. Sending PONG...');
+    sendMessage(chatId, "🏓 PONG! The connection between Google Apps Script and Telegram is working perfectly.");
+    return;
+  }
+
+  // Logger: Track users (This depends on Spreadsheet)
+  try {
+    logUser(msg.from);
+  } catch (e) {
+    console.error('logUser failed (Spreadsheet issue?):', e.toString());
+  }
   
   // Commands & Keyboard Buttons
   if (text === '/start' || text === '🏠 Main Menu') {
