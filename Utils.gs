@@ -73,17 +73,24 @@ function resetBot() {
   console.log('✅ Bot Reset Complete.');
 }
 
-function startWebhook() {
-  const WEBHOOK_URL = 'https://pdf-brown-beta.vercel.app/';
+function startWebhook(manualUrl) {
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty('BOT_TOKEN');
+  const urlToSet = manualUrl || props.getProperty('VERCEL_URL');
   
-  console.log('Setting webhook to:', WEBHOOK_URL);
+  if (!token || !urlToSet) {
+    console.error('Missing BOT_TOKEN or VERCEL_URL in script properties');
+    return;
+  }
   
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`;
+  console.log('Setting webhook to:', urlToSet);
+  
+  const url = `https://api.telegram.org/bot${token}/setWebhook`;
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify({
-      url: WEBHOOK_URL,
+      url: urlToSet,
       drop_pending_updates: true
     })
   });
@@ -91,6 +98,23 @@ function startWebhook() {
   const result = JSON.parse(response.getContentText());
   console.log(result.ok ? '✅ Webhook set successfully!' : '❌ Failed: ' + result.description);
   return result;
+}
+
+/**
+ * Setup script properties from initial values
+ * Run this once after deployment
+ */
+function initializeProjectProperties() {
+  const props = PropertiesService.getScriptProperties();
+  // These should be filled by the user or pre-filled if known
+  props.setProperties({
+    'BOT_TOKEN': '8025257893:AAGynpQhsMEfJxex-vHn5LhsM4i1WpMYM2Q',
+    'ADMIN_ID': '231207088',
+    'SPREADSHEET_ID': '12SoKFk1OOyaJ2_OMaFDwS0M-wGi_pNga_wfkvO6c5No',
+    'GAS_SECRET': 'YOUR_RANDOM_SECRET_HERE',
+    'VERCEL_URL': 'https://your-vercel-app.vercel.app/'
+  });
+  console.log('✅ Initial properties set. Please update GAS_SECRET and VERCEL_URL in Project Settings if needed.');
 }
 
 // === TESTING ===

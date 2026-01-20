@@ -2,10 +2,14 @@
  * Bot.gs - Message Handling
  */
 
-// Configuration Constants
-const BOT_TOKEN = '8025257893:AAGynpQhsMEfJxex-vHn5LhsM4i1WpMYM2Q';
-const ADMIN_ID = '231207088';
-const SPREADSHEET_ID = '12SoKFk1OOyaJ2_OMaFDwS0M-wGi_pNga_wfkvO6c5No';
+// Configuration Utils
+function getProp(key) {
+  return PropertiesService.getScriptProperties().getProperty(key);
+}
+
+const BOT_TOKEN = getProp('BOT_TOKEN');
+const ADMIN_ID = getProp('ADMIN_ID');
+const SPREADSHEET_ID = getProp('SPREADSHEET_ID');
 
 const BOT_API = 'https://api.telegram.org/bot';
 
@@ -617,7 +621,8 @@ function downloadFile(fileId) {
   if (!result.ok) throw new Error('Telegram Download Error: ' + result.description);
   
   const filePath = result.result.file_path;
-  const downloadUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+  const token = BOT_TOKEN || getProp('BOT_TOKEN');
+  const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
   
   return UrlFetchApp.fetch(downloadUrl).getBlob();
 }
