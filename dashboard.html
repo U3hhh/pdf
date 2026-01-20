@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Bridge Terminal | Intelligent Dashboard</title>
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --bg: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: #f8fafc;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .dot.online {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .dot.offline {
+            background: var(--error);
+            box-shadow: 0 0 10px var(--error);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .log-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            display: grid;
+            grid-template-columns: 140px 100px 1fr 100px;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.2s;
+        }
+
+        .log-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .timestamp {
+            color: #64748b;
+            font-family: monospace;
+        }
+
+        .user {
+            font-weight: 600;
+        }
+
+        .file {
+            color: var(--secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status {
+            text-align: right;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .health-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .health-stat:last-child {
+            border: 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 0;
+            background: var(--secondary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Bot Bridge Terminal</h1>
+            <div class="status-badge">
+                <div id="bridge-dot" class="dot"></div>
+                Bridge: <span id="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <main>
+                <div class="card">
+                    <div class="card-title">Live Execution Stream</div>
+                    <div id="log-container" class="log-list">
+                        <!-- Logs will appear here -->
+                        <div style="padding: 20px; text-align: center; color: #64748b;">Waiting for incoming packets...
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <aside>
+                <div class="card">
+                    <div class="card-title">System Health</div>
+                    <div class="health-stat">
+                        <span>Telegram Token</span>
+                        <span id="health-token">...</span>
+                    </div>
+                    <div class="health-stat">
+                        <span>Admin Access</span>
+                        <span id="health-admin">...</span>
+                    </div>
+                    <div class="health-stat">
+                        <span>Database (Sheets)</span>
+                        <span id="health-db">...</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Tools & Control</div>
+                    <button class="btn btn-green" onclick="triggerAction('send_test')">🚀 Send Test Message</button>
+                    <button class="btn" onclick="triggerAction('clear_cache')">🧹 Clear Bot Cache</button>
+                    <button class="btn btn-ghost" onclick="openDevLogs()">🔍 View GAS Executions</button>
+                    <button class="btn btn-ghost" onclick="fetchData()">🔄 Forced Sync</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        async function triggerAction(action) {
+            if (!confirm(`Trigger ${action}?`)) return;
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '⌛ Processing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/data?action=${action}`);
+                const text = await response.text();
+                alert('Result: ' + text);
+                fetchData();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                updateUI(data);
+            } catch (err) {
+                console.error('Fetch error:', err);
+                document.getElementById('status-text').innerText = 'Offline';
+                document.getElementById('bridge-dot').className = 'dot offline';
+            }
+        }
+
+        function updateUI(data) {
+            // Status
+            const isOnline = data.bridge && data.bridge.status === 'online';
+            document.getElementById('status-text').innerText = isOnline ? 'Online' : 'Offline';
+            document.getElementById('bridge-dot').className = `dot ${isOnline ? 'online' : 'offline'}`;
+
+            // Health
+            if (data.health) {
+                document.getElementById('health-token').innerHTML = data.health.token ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
+                document.getElementById('health-admin').innerHTML = data.health.admin ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
+                document.getElementById('health-db').innerHTML = data.health.spreadsheet ? '<span style="color:var(--success)">✅ OK</span>' : '<span style="color:var(--error)">❌ FAIL</span>';
+            }
+
+            // Logs
+            if (data.logs && data.logs.length > 0) {
+                const container = document.getElementById('log-container');
+                container.innerHTML = data.logs.map(log => `
+                    <div class="log-item">
+                        <span class="timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                        <span class="user">${log.username || 'User ' + log.userId}</span>
+                        <span class="file">${log.fileName || 'Command'}</span>
+                        <span class="status ${log.status === 'Success' ? '' : 'error'}">${log.status}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openDevLogs() {
+            window.open('https://script.google.com/home/executions', '_blank');
+        }
+
+        // Auto-poll
+        setInterval(fetchData, 5000);
+        fetchData();
+    </script>
+</body>
+
+</html>

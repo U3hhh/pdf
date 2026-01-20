@@ -581,10 +581,16 @@ function fetchFromTelegram(method, payload) {
   
   if (statusCode !== 200) {
     console.error(`Telegram ERROR [${method}]:`, content);
+    logSystemEvent('OUTBOUND', method, statusCode, content.substring(0, 1000));
   } else {
     const resObj = JSON.parse(content);
-    if (!resObj.ok) console.error(`Telegram JSON ERROR [${method}]:`, resObj.description);
-    else console.log(`Telegram SUCCESS [${method}]`);
+    if (!resObj.ok) {
+      console.error(`Telegram JSON ERROR [${method}]:`, resObj.description);
+      logSystemEvent('OUTBOUND', method, 'JSON_ERROR', resObj.description);
+    } else {
+      console.log(`Telegram SUCCESS [${method}]`);
+      logSystemEvent('OUTBOUND', method, 'SUCCESS', 'OK');
+    }
   }
   
   return response;

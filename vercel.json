@@ -2,6 +2,14 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/data",
+      "destination": "/api/data"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/webhook"
     }

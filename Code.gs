@@ -66,7 +66,45 @@ function doPost(e) {
 function doGet(e) {
   const props = PropertiesService.getScriptProperties();
   const action = e.parameter.action;
+  const format = e.parameter.format;
   
+  // Security check for JSON requests
+  if (format === 'json') {
+    const secret = props.getProperty('GAS_SECRET');
+    if (secret && e.parameter.secret !== secret) {
+      return ContentService.createTextOutput(JSON.stringify({error: 'Unauthorized'})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const data = {
+      health: {
+        token: !!props.getProperty('BOT_TOKEN'),
+        admin: !!props.getProperty('ADMIN_ID'),
+        spreadsheet: !!props.getProperty('SPREADSHEET_ID')
+      },
+      logs: []
+    };
+
+    try {
+      const ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
+      const sheet = ss.getSheetByName('Logs');
+      if (sheet) {
+        const rows = sheet.getDataRange().getValues();
+        // Return last 20 logs
+        data.logs = rows.slice(-20).reverse().map(row => ({
+          timestamp: row[0],
+          userId: row[1],
+          username: row[2],
+          fileName: row[4],
+          status: row[5]
+        }));
+      }
+    } catch (err) {
+      data.error = err.toString();
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === 'clear_cache') {
     CacheService.getScriptCache().removeAll(['debug_status']);
     return ContentService.createTextOutput('Cache cleared successfully').setMimeType(ContentService.MimeType.TEXT);
@@ -137,6 +175,7 @@ function doGet(e) {
       <body>
         <div class="card">
           <h1>🛠️ Bot Live Diagnostic</h1>
+          <p>This is the <b>Google Apps Script</b> view. For the interactive dashboard, visit your <b>Vercel URL</b>.</p>
           <ul>
             <li><span class="label">Telegram Bot:</span> ${tgStatus}</li>
             <li><span class="label">Google Drive:</span> ${driveStatus}</li>
