@@ -124,9 +124,6 @@ function sendLanguageKeyboard(chatId) {
   });
 }
 
-function getBotUrl() {
-  return BOT_API + BOT_TOKEN + '/';
-}
 
 function processMessage(msg) {
   const chatId = msg.chat.id;
@@ -653,6 +650,7 @@ function downloadFile(fileId) {
   if (!result.ok) throw new Error('Telegram Download Error: ' + result.description);
   
   const token = getBotToken();
+  const filePath = result.result.file_path;
   const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
   
   return UrlFetchApp.fetch(downloadUrl).getBlob();
