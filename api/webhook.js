@@ -12,18 +12,22 @@ export default async function handler(req, res) {
 
     try {
         // 2. Forward the update to Apps Script
-        // NOTE: We use query params because custom headers are lost during Google's 302 redirect
         const targetUrl = new URL(APPS_SCRIPT_URL);
         if (GAS_SECRET) targetUrl.searchParams.set('secret', GAS_SECRET);
 
-        await fetch(targetUrl.toString(), {
+        const response = await fetch(targetUrl.toString(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req.body)
         });
 
-        console.log('Update forwarded to Apps Script');
+        const result = await response.text();
+        console.log('GAS Answer:', result);
+
+        // Return GAS response to Telegram (or helpful for Vercel logs)
+        res.status(200).send(result || 'OK');
     } catch (err) {
         console.error('Bridge Error:', err.message);
+        res.status(500).send('Bridge Error');
     }
 }

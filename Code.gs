@@ -64,5 +64,28 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return ContentService.createTextOutput('Bot Bridge is active');
+  const props = PropertiesService.getScriptProperties();
+  const token = props.getProperty('BOT_TOKEN');
+  const adminId = props.getProperty('ADMIN_ID');
+  const ssId = props.getProperty('SPREADSHEET_ID');
+  const secret = props.getProperty('GAS_SECRET');
+  
+  let html = `
+    <html>
+      <head><style>body{font-family:sans-serif;padding:20px} .ok{color:green} .error{color:red}</style></head>
+      <body>
+        <h1>🛠️ Bot Diagnostic Dashboard</h1>
+        <ul>
+          <li>Token Set: ${token ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
+          <li>Admin ID Set: ${adminId ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
+          <li>Sheet ID Set: ${ssId ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
+          <li>Secret Set: ${secret ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
+        </ul>
+        <hr>
+        <p><b>Last 5 Executions:</b> Check the "Executions" tab in the Apps Script editor for details.</p>
+        <p><i>Note: To update these, go to Project Settings > Script Properties.</i></p>
+      </body>
+    </html>
+  `;
+  return ContentService.createTextOutput(html).setMimeType(ContentService.MimeType.HTML);
 }
