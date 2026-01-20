@@ -128,6 +128,31 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .filter-btn.active {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+        }
+
         .timestamp {
             color: #64748b;
             font-family: monospace;
@@ -135,6 +160,9 @@
 
         .user {
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .file {
@@ -218,6 +246,14 @@
             <main>
                 <div class="card">
                     <div class="card-title">Live Execution Stream</div>
+
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="setFilter('ALL')">All</button>
+                        <button class="filter-btn" onclick="setFilter('INBOUND')">Messages</button>
+                        <button class="filter-btn" onclick="setFilter('OUTBOUND')">Replies</button>
+                        <button class="filter-btn" onclick="setFilter('CONVERSION')">Files</button>
+                    </div>
+
                     <div id="log-container" class="log-list">
                         <!-- Logs will appear here -->
                         <div style="padding: 20px; text-align: center; color: #64748b;">Waiting for incoming packets...
@@ -255,6 +291,22 @@
     </div>
 
     <script>
+        let currentFilter = 'ALL';
+        let latestData = null;
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const text = btn.innerText;
+                const match = (filter === 'ALL' && text === 'All') ||
+                    (filter === 'INBOUND' && text === 'Messages') ||
+                    (filter === 'OUTBOUND' && text === 'Replies') ||
+                    (filter === 'CONVERSION' && text === 'Files');
+                btn.classList.toggle('active', match);
+            });
+            if (latestData) renderLogs(latestData.logs);
+        }
+
         async function triggerAction(action) {
             if (!confirm(`Trigger ${action}?`)) return;
             const btn = event.target;
@@ -287,6 +339,7 @@
         }
 
         function updateUI(data) {
+            latestData = data;
             // Status
             const isOnline = data.bridge && data.bridge.status === 'online';
             document.getElementById('status-text').innerText = isOnline ? 'Online' : 'Offline';
@@ -300,18 +353,29 @@
             }
 
             // Logs
-            if (data.logs && data.logs.length > 0) {
-                const container = document.getElementById('log-container');
-                container.innerHTML = data.logs.map(log => `
-                    <div class="log-item">
-                        <span class="timestamp">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span class="user">${log.username || 'User ' + log.userId}</span>
-                        <span style="color: #94a3b8; font-weight: bold; font-size: 10px;">${log.type || '---'}</span>
-                        <span class="file">${log.details || '---'}</span>
-                        <span class="status ${log.status.includes('Success') || log.status.includes('OK') ? '' : 'error'}">${log.status}</span>
-                    </div>
-                `).join('');
+            renderLogs(data.logs);
+        }
+
+        function renderLogs(logs) {
+            if (!logs || logs.length === 0) return;
+
+            const container = document.getElementById('log-container');
+            const filtered = currentFilter === 'ALL' ? logs : logs.filter(l => l.type === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b;">No ${currentFilter.toLowerCase()} logs found.</div>`;
+                return;
             }
+
+            container.innerHTML = filtered.map(log => `
+                <div class="log-item">
+                    <span class="timestamp">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span class="user" title="${log.username || log.userId}">${log.username || 'User ' + log.userId}</span>
+                    <span style="color: #94a3b8; font-weight: bold; font-size: 10px;">${log.type || '---'}</span>
+                    <span class="file" title="${log.details}">${log.details || '---'}</span>
+                    <span class="status ${log.status.includes('Success') || log.status.includes('OK') ? '' : 'error'}">${log.status}</span>
+                </div>
+            `).join('');
         }
 
         function openDevLogs() {
