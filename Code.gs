@@ -72,6 +72,20 @@ function doGet(e) {
     return ContentService.createTextOutput('Cache cleared successfully').setMimeType(ContentService.MimeType.TEXT);
   }
 
+  if (action === 'send_test') {
+    try {
+      const resp = sendMessage(getAdminId(), "🧪 Diagnostic Test: If you see this, your Bot Token and Admin ID are 100% correct!");
+      const result = JSON.parse(resp.getContentText());
+      if (result.ok) {
+        return ContentService.createTextOutput('✅ Success! Check Telegram.').setMimeType(ContentService.MimeType.TEXT);
+      } else {
+        return ContentService.createTextOutput('❌ Telegram Error: ' + result.description).setMimeType(ContentService.MimeType.TEXT);
+      }
+    } catch (err) {
+      return ContentService.createTextOutput('❌ Script Error: ' + err.toString()).setMimeType(ContentService.MimeType.TEXT);
+    }
+  }
+
   const token = props.getProperty('BOT_TOKEN');
   const adminId = props.getProperty('ADMIN_ID');
   const ssId = props.getProperty('SPREADSHEET_ID');
@@ -115,7 +129,9 @@ function doGet(e) {
           ul{list-style:none;padding:0}
           li{padding:12px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
           .ok{color:#27ae60} .error{color:#e74c3c} .label{font-weight:bold;color:#7f8c8d}
-          .btn{background:#3498db;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;display:inline-block;margin-top:20px}
+          .btn{background:#3498db;color:white;padding:10px 15px;text-decoration:none;border-radius:4px;display:inline-block;margin:10px 5px;transition:0.2s}
+          .btn:hover{opacity:0.8}
+          .btn-green{background:#27ae60}
         </style>
       </head>
       <body>
@@ -129,6 +145,8 @@ function doGet(e) {
             <li><span class="label">Security Secret:</span> ${secret ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
           </ul>
           <div style="margin-top:20px;text-align:center">
+            <a href="?action=send_test" class="btn btn-green">🚀 Send Test Message to Me</a>
+            <br>
             <a href="?action=clear_cache" class="btn">🧹 Clear Script Cache</a>
             <p style="font-size:12px;color:#95a5a6;margin-top:10px">Refresh this page after updating <b>Script Properties</b>.</p>
           </div>
