@@ -108,6 +108,25 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'login') {
+    const user = e.parameter.username;
+    const pass = e.parameter.password;
+    try {
+      const adminSheet = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID')).getSheetByName('DashboardAdmins');
+      if (adminSheet) {
+        const data = adminSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][0] == user && data[i][1] == pass) {
+            return ContentService.createTextOutput(JSON.stringify({ success: true, username: user })).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Invalid login' })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   if (action === 'clear_cache') {
     CacheService.getScriptCache().removeAll(['debug_status']);
     return ContentService.createTextOutput('Cache cleared successfully').setMimeType(ContentService.MimeType.TEXT);

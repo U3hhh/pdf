@@ -12,6 +12,8 @@ export default async function handler(req, res) {
 
         if (action) {
             targetUrl.searchParams.set('action', action);
+            if (req.query.username) targetUrl.searchParams.set('username', req.query.username);
+            if (req.query.password) targetUrl.searchParams.set('password', req.query.password);
         } else {
             targetUrl.searchParams.set('format', 'json');
         }

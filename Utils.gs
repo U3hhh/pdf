@@ -322,6 +322,15 @@ function setupSpreadsheet() {
       settingsSheet.appendRow(['Chat ID', 'Language']);
       settingsSheet.getRange('A1:B1').setFontWeight('bold').setBackground('#EFEFEF');
     }
+
+    // 5. Setup Admins Sheet (for Dashboard Login)
+    let adminsSheet = ss.getSheetByName('DashboardAdmins');
+    if (!adminsSheet) {
+      adminsSheet = ss.insertSheet('DashboardAdmins');
+      adminsSheet.appendRow(['Username', 'Password', 'Created At']);
+      adminsSheet.getRange('A1:C1').setFontWeight('bold').setBackground('#CFE2F3');
+      adminsSheet.appendRow(['admin', 'admin123', new Date()]);
+    }
     
     console.log('✅ Spreadsheet Setup Complete. Check for all tabs!');
     SpreadsheetApp.flush(); // Force write to disk

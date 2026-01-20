@@ -283,9 +283,13 @@
     <div class="container">
         <header>
             <h1>Bot Bridge Terminal</h1>
-            <div class="status-badge">
-                <div id="bridge-dot" class="dot"></div>
-                Bridge: <span id="status-text">Connecting...</span>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <div class="status-badge">
+                    <div id="bridge-dot" class="dot"></div>
+                    Bridge: <span id="status-text">Connecting...</span>
+                </div>
+                <button onclick="logout()" class="status-badge" style="cursor:pointer; padding: 6px 10px;"
+                    title="Logout">🚪 Exit</button>
             </div>
         </header>
 
@@ -338,6 +342,17 @@
     </div>
 
     <script>
+        // Security check
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = '/login';
+        }
+
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
         let currentFilter = 'ALL';
         let latestData = null;
 
