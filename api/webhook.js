@@ -1,17 +1,19 @@
 export default async function handler(req, res) {
-    // 1. Respond 200 OK immediately to Telegram
-    res.status(200).send('OK');
+    // 1. If visit in browser (GET), redirect to dashboard
+    if (req.method === 'GET') {
+        return res.redirect('/dashboard');
+    }
 
+    // 2. Standard Telegram POST handling
     const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
     const GAS_SECRET = process.env.GAS_SECRET;
 
     if (!APPS_SCRIPT_URL) {
         console.error('APPS_SCRIPT_URL is not defined');
-        return;
+        return res.status(500).send('Configuration Error');
     }
 
     try {
-        // 2. Forward the update to Apps Script
         const targetUrl = new URL(APPS_SCRIPT_URL);
         if (GAS_SECRET) targetUrl.searchParams.set('secret', GAS_SECRET);
 
@@ -24,10 +26,10 @@ export default async function handler(req, res) {
         const result = await response.text();
         console.log('GAS Answer:', result);
 
-        // Return GAS response to Telegram (or helpful for Vercel logs)
-        res.status(200).send(result || 'OK');
+        // Respond to Telegram with GAS answer or OK
+        return res.status(200).send(result || 'OK');
     } catch (err) {
         console.error('Bridge Error:', err.message);
-        res.status(500).send('Bridge Error');
+        return res.status(500).send('Bridge Error');
     }
 }
