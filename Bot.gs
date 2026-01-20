@@ -548,37 +548,47 @@ function debugSheet(chatId, from) {
   }
 }
 
-function sendMessage(chatId, text) {
-  const url = getBotUrl() + 'sendMessage';
-  const payload = {
-    chat_id: chatId,
-    text: text
-  };
-  
-  const response = UrlFetchApp.fetch(url, {
+function fetchFromTelegram(method, payload) {
+  const url = getBotUrl() + method;
+  const options = {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
-  });
+  };
 
+  // For sendDocument, we don't use JSON stringify if payload contains a blob
+  if (payload.document) {
+    delete options.contentType;
+    options.payload = payload;
+  }
+
+  const response = UrlFetchApp.fetch(url, options);
   const statusCode = response.getResponseCode();
   const content = response.getContentText();
   
+  console.log(`Telegram API [${method}] status: ${statusCode}`);
+  
   if (statusCode !== 200) {
-    console.error('Telegram Error! Status:', statusCode, 'Body:', content);
+    console.error(`Telegram ERROR [${method}]:`, content);
   } else {
     const resObj = JSON.parse(content);
-    if (!resObj.ok) console.error('Telegram JSON Error:', resObj.description);
-    else console.log('Message sent successfully to:', chatId);
+    if (!resObj.ok) console.error(`Telegram JSON ERROR [${method}]:`, resObj.description);
+    else console.log(`Telegram SUCCESS [${method}]`);
   }
   
   return response;
 }
 
+function sendMessage(chatId, text) {
+  return fetchFromTelegram('sendMessage', {
+    chat_id: chatId,
+    text: text
+  });
+}
+
 function sendMainMenu(chatId, text) {
-  const url = getBotUrl() + 'sendMessage';
-  const payload = {
+  return fetchFromTelegram('sendMessage', {
     chat_id: chatId,
     text: text,
     reply_markup: {
@@ -589,52 +599,31 @@ function sendMainMenu(chatId, text) {
       resize_keyboard: true,
       persistent: true
     }
-  };
-  
-  return UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
   });
 }
 
 function sendAdminMenu(chatId, text) {
-  const url = getBotUrl() + 'sendMessage';
-  const payload = {
+  return fetchFromTelegram('sendMessage', {
     chat_id: chatId,
     text: text,
     reply_markup: {
       keyboard: [
         [{ text: '📊 Statistics' }, { text: '🔍 System Health' }],
-        [{ text: '� Convert' }, { text: '🌐 Language' }],
-        [{ text: '�📣 Broadcast' }, { text: '🛡️ Whitelist' }],
+        [{ text: '📄 Convert' }, { text: '🌐 Language' }],
+        [{ text: '📣 Broadcast' }, { text: '🛡️ Whitelist' }],
         [{ text: '🧪 Debug Sheet' }, { text: '❓ Help' }],
         [{ text: '🏠 Main Menu' }]
       ],
       resize_keyboard: true,
       persistent: true
     }
-  };
-  
-  return UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
   });
 }
 
 function sendDocument(chatId, blob) {
-  const url = getBotUrl() + 'sendDocument';
-  
-  return UrlFetchApp.fetch(url, {
-    method: 'post',
-    payload: {
-      chat_id: String(chatId),
-      document: blob
-    },
-    muteHttpExceptions: true
+  return fetchFromTelegram('sendDocument', {
+    chat_id: String(chatId),
+    document: blob
   });
 }
 

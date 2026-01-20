@@ -70,20 +70,54 @@ function doGet(e) {
   const ssId = props.getProperty('SPREADSHEET_ID');
   const secret = props.getProperty('GAS_SECRET');
   
-  let html = `
+  let tgStatus = 'Checking...';
+  if (token) {
+    try {
+      const resp = UrlFetchApp.fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const data = JSON.parse(resp.getContentText());
+      tgStatus = data.ok ? `<b class="ok">✅ Connected to @${data.result.username}</b>` : `<b class="error">❌ Telegram Error: ${data.description}</b>`;
+    } catch (err) {
+      tgStatus = `<b class="error">❌ Connection Failed: ${err.toString()}</b>`;
+    }
+  } else {
+    tgStatus = `<b class="error">❌ No Token Provided</b>`;
+  }
+
+  let driveStatus = 'Checking...';
+  try {
+    DriveApp.getRootFolder();
+    driveStatus = '<b class="ok">✅ Drive API Enabled</b>';
+  } catch (err) {
+    driveStatus = '<b class="error">❌ Drive API Error (Enable in Services)</b>';
+  }
+
+  const html = `
     <html>
-      <head><style>body{font-family:sans-serif;padding:20px} .ok{color:green} .error{color:red}</style></head>
+      <head>
+        <title>Bot Diagnostic</title>
+        <style>
+          body{font-family:sans-serif;background:#f4f7f6;padding:40px;color:#333}
+          .card{background:white;padding:20px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);max-width:600px;margin:auto}
+          h1{color:#2c3e50;font-size:24px;margin-bottom:20px;border-bottom:2px solid #eee;padding-bottom:10px}
+          ul{list-style:none;padding:0}
+          li{padding:12px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+          .ok{color:#27ae60} .error{color:#e74c3c} .label{font-weight:bold;color:#7f8c8d}
+        </style>
+      </head>
       <body>
-        <h1>🛠️ Bot Diagnostic Dashboard</h1>
-        <ul>
-          <li>Token Set: ${token ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
-          <li>Admin ID Set: ${adminId ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
-          <li>Sheet ID Set: ${ssId ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
-          <li>Secret Set: ${secret ? '<b class="ok">✅ YES</b>' : '<b class="error">❌ NO</b>'}</li>
-        </ul>
-        <hr>
-        <p><b>Last 5 Executions:</b> Check the "Executions" tab in the Apps Script editor for details.</p>
-        <p><i>Note: To update these, go to Project Settings > Script Properties.</i></p>
+        <div class="card">
+          <h1>🛠️ Bot Live Diagnostic</h1>
+          <ul>
+            <li><span class="label">Telegram Bot:</span> ${tgStatus}</li>
+            <li><span class="label">Google Drive:</span> ${driveStatus}</li>
+            <li><span class="label">Admin ID:</span> ${adminId ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
+            <li><span class="label">Spreadsheet ID:</span> ${ssId ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
+            <li><span class="label">Security Secret:</span> ${secret ? '<b class="ok">✅ Set</b>' : '<b class="error">❌ Missing</b>'}</li>
+          </ul>
+          <div style="margin-top:20px;font-size:13px;color:#95a5a6;text-align:center">
+            Refresh this page after updating <b>Script Properties</b>.
+          </div>
+        </div>
       </body>
     </html>
   `;
