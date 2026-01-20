@@ -22,11 +22,11 @@ function runDiagnostics() {
   // 1. CONFIGURATION CHECK
   try {
     console.log('\n1️⃣ Checking Configuration...');
-    if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN') throw new Error('BOT_TOKEN is missing');
-    if (!ADMIN_ID) console.warn('⚠️ ADMIN_ID is missing (optional but recommended)');
+    if (!getBotToken()) throw new Error('BOT_TOKEN is missing');
+    if (!getAdminId()) console.warn('⚠️ ADMIN_ID is missing (optional but recommended)');
     
     // Check Webhook Validation
-    const webhookInfo = UrlFetchApp.fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`).getContentText();
+    const webhookInfo = UrlFetchApp.fetch(`https://api.telegram.org/bot${getBotToken()}/getWebhookInfo`).getContentText();
     const webhookJson = JSON.parse(webhookInfo);
     if (!webhookJson.ok) throw new Error('Telegram API Error: ' + webhookJson.description);
     if (!webhookJson.result.url) throw new Error('Webhook URL is NOT set! Run startWebhook() in Utils.gs');
@@ -84,7 +84,7 @@ function runDiagnostics() {
   // 4. SPREADSHEET LOGGING CHECK
   try {
     console.log('\n4️⃣ Checking Spreadsheet Logging...');
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.openById(getSpreadsheetId());
     const sheet = ss.getSheetByName('Logs');
     // Test writing a single cell to verify permissions
     console.log('  → Testing write access...');
@@ -99,12 +99,12 @@ function runDiagnostics() {
   // 5. TELEGRAM CONNECTIVITY
   try {
     console.log('\n5️⃣ Testing Telegram Connection...');
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    const url = `https://api.telegram.org/bot${getBotToken()}/sendMessage`;
     UrlFetchApp.fetch(url, {
       method: 'post',
       contentType: 'application/json',
       payload: JSON.stringify({
-        chat_id: ADMIN_ID || '231207088', // Fallback to your ID
+        chat_id: getAdminId() || '231207088', // Fallback to your ID
         text: '🩺 System Diagnostics: ALL SYSTEMS GO ✅'
       })
     });
