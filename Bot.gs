@@ -127,126 +127,16 @@ function sendLanguageKeyboard(chatId) {
 
 function processMessage(msg) {
   const chatId = msg.chat.id;
-  const text = msg.text || '';
   
-  // Logger: Track incoming message
-  logEvent('INBOUND', text || (msg.document ? 'File: ' + msg.document.file_name : 'Update'), 'OK', msg.from);
-
-  // 1. Spreadsheet-free Ping Test
-  if (text.toLowerCase() === '/ping') {
-    console.log('Ping command detected. Sending PONG...');
-    sendMessage(chatId, "🏓 PONG! The connection between Google Apps Script and Telegram is working perfectly.");
-    return;
-  }
-
-  // Logger: Track users (This depends on Spreadsheet)
-  try {
-    logUser(msg.from);
-  } catch (e) {
-    console.error('logUser failed (Spreadsheet issue?):', e.toString());
-  }
-  
-  // Commands & Keyboard Buttons
-  if (text === '/start' || text === '🏠 Main Menu') {
-    if (String(chatId) === String(getAdminId())) {
-      sendAdminMenu(chatId, "🛠️ Welcome, Admin! Accessing management dashboard...");
-    } else {
-      sendMainMenu(chatId, t(chatId, 'welcome'));
-    }
-    return;
-  }
-  
-  if (text === '/help' || text === '❓ Help') {
-    sendMessage(chatId, t(chatId, 'help'));
-    return;
-  }
-
-  if (text === '/lang' || text === '/language' || text === '🌐 Language') {
-    sendLanguageKeyboard(chatId);
-    return;
-  }
-
-  if (text === '/convert' || text === '📄 Convert' || text === '📄 تحويل') {
-    sendMessage(chatId, t(chatId, 'convert_prompt'));
-    return;
-  }
-
-  // Admin Specific Buttons
-  if (String(chatId) === String(getAdminId())) {
-    if (text === '📊 Statistics') {
-      sendMessage(chatId, getBotStats());
-      return;
-    }
-    if (text === '🔍 System Health') {
-      sendMessage(chatId, checkSpreadsheetHealth());
-      return;
-    }
-    if (text === '📣 Broadcast') {
-      sendMessage(chatId, "📣 **Broadcast Mode:**\n\nPlease type `/broadcast` followed by your message.\n\n*Example:*\n`/broadcast Hello everyone!`");
-      return;
-    }
-    if (text === '🛡️ Whitelist') {
-      sendMessage(chatId, "🛡️ **Whitelist Mode:**\n\nPlease type `/add` followed by the Username or Chat ID.\n\n*Example:*\n`/add @john_doe` or `/add 1234567` ");
-      return;
-    }
-    if (text === '🧪 Debug Sheet') {
-      sendMessage(chatId, debugSheet(chatId, msg.from));
-      return;
-    }
-  }
-
-  if (text === '/version') {
-    sendMessage(chatId, t(chatId, 'version'));
-    return;
-  }
-
-  // Admin Text Commands
-  if (String(chatId) === String(getAdminId())) {
-    if (text.startsWith('/add ')) {
-      const userToAdd = text.replace('/add ', '').trim();
-      whitelistUser(userToAdd);
-      sendMessage(chatId, '✅ تم إضافة ' + userToAdd + ' إلى قائمة الاستثناءات بنجاح.');
-      return;
-    }
-    
-    if (text === '/stats') {
-      const stats = getBotStats();
-      sendMessage(chatId, stats);
-      return;
-    }
-
-    if (text === '/check') {
-      const report = checkSpreadsheetHealth();
-      sendMessage(chatId, report);
-      return;
-    }
-
-    if (text === '/debug_sheet') {
-      const res = debugSheet(chatId, msg.from);
-      sendMessage(chatId, res);
-      return;
-    }
-
-    if (text.startsWith('/broadcast ')) {
-      const messageToBroadcast = text.replace('/broadcast ', '').trim();
-      const stats = sendBroadcast(messageToBroadcast);
-      sendMessage(chatId, stats);
-      return;
-    }
-  }
-  
-  // File handling
+  // File handling (Vercel proxies document messages here)
   if (msg.document) {
-    console.log('Document detected, calling handleFile');
+    console.log('Document detected in GAS. Processing...');
     handleFile(chatId, msg.document, msg.from);
     return;
   }
 
-  // Fallback for unhandled text
-  console.log('Unhandled message text:', text);
-  if (text && !text.startsWith('/')) {
-    sendMessage(chatId, "❓ I don't understand that command. Please use the menu or send a file to convert.");
-  }
+  // Fallback (GAS should not receive plain text anymore)
+  console.log('GAS received unhandled message type:', msg.text || 'non-text');
 }
 
 function logUser(from) {

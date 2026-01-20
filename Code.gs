@@ -119,6 +119,33 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'get_user_lang') {
+    return ContentService.createTextOutput(JSON.stringify({ lang: getUserLang(e.parameter.userId) })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'set_user_lang') {
+    setUserLang(e.parameter.userId, e.parameter.lang);
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'log_user') {
+    logUser({ id: e.parameter.userId, username: e.parameter.username, first_name: e.parameter.firstName });
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'log_event') {
+    logEvent(e.parameter.type, e.parameter.details, e.parameter.status, { id: e.parameter.userId, username: e.parameter.username });
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'get_stats') {
+    return ContentService.createTextOutput(JSON.stringify({ text: getBotStats() })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'get_health_report') {
+    return ContentService.createTextOutput(JSON.stringify({ text: checkSpreadsheetHealth() })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === 'login') {
     const user = e.parameter.username;
     const pass = e.parameter.password;
