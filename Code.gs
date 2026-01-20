@@ -80,7 +80,11 @@ function doGet(e) {
         token: !!props.getProperty('BOT_TOKEN'),
         admin: !!props.getProperty('ADMIN_ID'),
         spreadsheet: !!props.getProperty('SPREADSHEET_ID'),
-        loggingEnabled: props.getProperty('LOGGING_ENABLED') !== 'false'
+        loggingEnabled: props.getProperty('LOGGING_ENABLED') !== 'false',
+        driveUsed: DriveApp.getStorageUsed(),
+        driveTotal: DriveApp.getStorageLimit(),
+        fetchCount: parseInt(props.getProperty('URL_FETCH_COUNT') || '0'),
+        fetchLimit: 20000
       },
       logs: []
     };
@@ -145,6 +149,11 @@ function doGet(e) {
     const currentState = props.getProperty('LOGGING_ENABLED') !== 'false'; // Default to true
     props.setProperty('LOGGING_ENABLED', !currentState);
     return ContentService.createTextOutput(!currentState ? 'Logging Started' : 'Logging Stopped').setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  if (action === 'reset_fetch') {
+    props.setProperty('URL_FETCH_COUNT', '0');
+    return ContentService.createTextOutput('Fetch counter reset').setMimeType(ContentService.MimeType.TEXT);
   }
 
   if (action === 'clear_cache') {

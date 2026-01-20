@@ -341,3 +341,19 @@ function setupSpreadsheet() {
   }
 }
 
+function countResource(type) {
+  const props = PropertiesService.getScriptProperties();
+  const today = new Date().toDateString();
+  const lastReset = props.getProperty('QUOTA_RESET_DATE');
+  
+  if (lastReset !== today) {
+    props.setProperty('QUOTA_RESET_DATE', today);
+    props.setProperty('URL_FETCH_COUNT', '0');
+  }
+  
+  if (type === 'fetch') {
+    const current = parseInt(props.getProperty('URL_FETCH_COUNT') || '0');
+    props.setProperty('URL_FETCH_COUNT', (current + 1).toString());
+  }
+}
+

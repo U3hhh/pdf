@@ -111,7 +111,7 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 500px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
@@ -315,6 +315,25 @@
 
             <aside>
                 <div class="card">
+                    <div class="card-title">Resource Usage</div>
+                    <div class="health-stat">
+                        <span>Drive Storage</span>
+                        <span id="quota-drive">...</span>
+                    </div>
+                    <div class="health-stat">
+                        <span>URL Fetches</span>
+                        <span id="quota-fetch">...</span>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                            <div id="fetch-bar"
+                                style="height: 100%; background: var(--primary); width: 0%; border-radius: 2px; transition: 0.5s;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
                     <div class="card-title">System Health</div>
                     <div class="health-stat">
                         <span>Telegram Token</span>
@@ -340,6 +359,7 @@
                         Logging</button>
                     <button class="btn btn-ghost" onclick="triggerAction('clear_logs')">🗑️ Clear Spreadsheet
                         Logs</button>
+                    <button class="btn btn-ghost" onclick="triggerAction('reset_fetch')">🔄 Reset Fetch Counter</button>
                     <button class="btn btn-green" onclick="triggerAction('send_test')">🚀 Send Test Message</button>
                     <button class="btn" onclick="triggerAction('clear_cache')">🧹 Clear Bot Cache</button>
                     <button class="btn btn-ghost" onclick="openDevLogs()">🔍 View GAS Executions</button>
@@ -428,6 +448,20 @@
                 const toggleBtn = document.getElementById('toggle-logging-btn');
                 toggleBtn.innerText = logEnabled ? '⏸️ Stop Logging' : '▶️ Resume Logging';
                 toggleBtn.style.background = logEnabled ? '#ef4444' : 'var(--success)';
+
+                // Quotas
+                const driveGB = (data.health.driveUsed / (1024 ** 3)).toFixed(2);
+                const driveTotalGB = (data.health.driveTotal / (1024 ** 3)).toFixed(0);
+                document.getElementById('quota-drive').innerText = `${driveGB} / ${driveTotalGB} GB`;
+
+                const fetchCount = data.health.fetchCount;
+                const fetchLimit = data.health.fetchLimit;
+                document.getElementById('quota-fetch').innerText = `${fetchCount} / ${fetchLimit}`;
+
+                const fetchPercent = Math.min((fetchCount / fetchLimit) * 100, 100);
+                const fetchBar = document.getElementById('fetch-bar');
+                fetchBar.style.width = `${fetchPercent}%`;
+                fetchBar.style.background = fetchPercent > 80 ? 'var(--error)' : (fetchPercent > 50 ? '#f59e0b' : 'var(--primary)');
             }
 
             // Logs

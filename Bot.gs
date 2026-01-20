@@ -559,6 +559,7 @@ function debugSheet(chatId, from) {
 }
 
 function fetchFromTelegram(method, payload) {
+  countResource('fetch');
   const url = getBotUrl() + method;
   const options = {
     method: 'post',
@@ -648,6 +649,7 @@ function sendDocument(chatId, blob) {
 }
 
 function downloadFile(fileId) {
+  countResource('fetch');
   const url = getBotUrl() + 'getFile';
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
@@ -663,5 +665,6 @@ function downloadFile(fileId) {
   const filePath = result.result.file_path;
   const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
   
+  countResource('fetch');
   return UrlFetchApp.fetch(downloadUrl).getBlob();
 }
