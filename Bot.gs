@@ -226,7 +226,15 @@ function processMessage(msg) {
   
   // File handling
   if (msg.document) {
+    console.log('Document detected, calling handleFile');
     handleFile(chatId, msg.document, msg.from);
+    return;
+  }
+
+  // Fallback for unhandled text
+  console.log('Unhandled message text:', text);
+  if (text && !text.startsWith('/')) {
+    sendMessage(chatId, "❓ I don't understand that command. Please use the menu or send a file to convert.");
   }
 }
 
