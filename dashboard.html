@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bot Terminal | Mobile App</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --primary: #00f2fe;
@@ -101,7 +102,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             color: var(--text-dim);
             text-decoration: none;
             font-size: 10px;
@@ -111,6 +112,20 @@
             border: none;
             cursor: pointer;
             width: 20%;
+        }
+
+        .nav-item i,
+        .nav-item svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-item.active svg {
+            filter: drop-shadow(0 0 5px var(--primary));
         }
 
         .nav-item i {
@@ -314,7 +329,9 @@
                 <span id="node-info">Connecting...</span>
             </div>
             <button onclick="logout()"
-                style="background:none; border:none; color:var(--text-dim); font-size:18px;">🚪</button>
+                style="background:none; border:none; color:var(--text-dim); display:flex; align-items:center;">
+                <i data-lucide="log-out" style="width:20px;"></i>
+            </button>
         </header>
 
         <!-- TAB 1: OVERVIEW -->
@@ -369,7 +386,8 @@
             <div class="card">
                 <div class="card-title">Whitelist Management</div>
                 <input type="text" id="whit-in" class="input-pill" placeholder="UserID or @Username">
-                <button class="btn btn-grad" onclick="addWhitelistUI()">🛡️ Add Permission</button>
+                <button class="btn btn-grad" onclick="addWhitelistUI()"><i data-lucide="shield-check"
+                        style="width:18px;"></i> Add Permission</button>
             </div>
             <div class="card">
                 <div class="card-title">Top Registered Users</div>
@@ -383,20 +401,27 @@
                 <div class="card-title">Global Broadcast</div>
                 <textarea id="broad-msg" class="input-pill" style="min-height:100px;"
                     placeholder="Message to all users..."></textarea>
-                <button class="btn btn-grad" onclick="sendBroadcastUI()">📣 Send Pulse</button>
+                <button class="btn btn-grad" onclick="sendBroadcastUI()">
+                    <i data-lucide="send" style="width:18px; margin-right:8px;"></i> Send Pulse
+                </button>
             </div>
             <div class="card">
                 <div class="card-title">System Control</div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button id="maint-btn" class="btn btn-ghost" onclick="triggerAction('toggle_maintenance')">⚙️
-                        Service</button>
-                    <button id="log-btn" class="btn btn-ghost" onclick="triggerAction('toggle_logging')">💾
-                        Logs</button>
+                    <button id="maint-btn" class="btn btn-ghost" onclick="triggerAction('toggle_maintenance')">
+                        <i data-lucide="settings" style="width:16px; margin-right:6px;"></i> Service
+                    </button>
+                    <button id="log-btn" class="btn btn-ghost" onclick="triggerAction('toggle_logging')">
+                        <i data-lucide="database" style="width:16px; margin-right:6px;"></i> Logs
+                    </button>
                 </div>
                 <button class="btn btn-ghost btn-danger" style="margin-top:10px;"
-                    onclick="triggerAction('clear_cache')">🧹 Wipe Cache</button>
-                <button class="btn btn-ghost" style="margin-top:10px;" onclick="triggerAction('reset_fetch')">🔄 Reset
-                    Usage</button>
+                    onclick="triggerAction('clear_cache')">
+                    <i data-lucide="trash-2" style="width:16px; margin-right:8px;"></i> Wipe Cache
+                </button>
+                <button class="btn btn-ghost" style="margin-top:10px;" onclick="triggerAction('reset_fetch')">
+                    <i data-lucide="refresh-cw" style="width:16px; margin-right:8px;"></i> Reset Usage
+                </button>
             </div>
         </div>
     </div>
@@ -404,19 +429,19 @@
     <!-- Mobile Nav Bar -->
     <nav>
         <button class="nav-item active" onclick="showTab('home', this)">
-            <i>🏠</i><span>Dash</span>
+            <i data-lucide="layout-dashboard"></i><span>Dash</span>
         </button>
         <button class="nav-item" onclick="showTab('feed', this)">
-            <i>📡</i><span>Feed</span>
+            <i data-lucide="activity"></i><span>Feed</span>
         </button>
         <button class="nav-item" onclick="showTab('users', this)">
-            <i>👥</i><span>Users</span>
+            <i data-lucide="users"></i><span>Users</span>
         </button>
         <button class="nav-item" onclick="showTab('action', this)">
-            <i>⚡</i><span>Action</span>
+            <i data-lucide="zap"></i><span>Action</span>
         </button>
         <button class="nav-item" onclick="fetchData()">
-            <i>🔄</i><span>Sync</span>
+            <i data-lucide="refresh-cw"></i><span>Sync</span>
         </button>
     </nav>
 
@@ -439,6 +464,7 @@
                 const res = await fetch('/api/data?format=json');
                 const data = await res.json();
                 updateUI(data);
+                lucide.createIcons(); // Re-render icons after data load
             } catch (e) {
                 console.error('Sync failed', e);
             }
@@ -557,6 +583,7 @@
 
         setInterval(fetchData, 8000);
         fetchData();
+        lucide.createIcons();
     </script>
 </body>
 
