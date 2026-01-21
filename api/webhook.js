@@ -5,16 +5,20 @@ export default async function handler(req, res) {
     }
 
     // 2. Standard Telegram POST handling
-    const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+    const APPS_SCRIPT_URLS = process.env.APPS_SCRIPT_URL || '';
+    const urls = APPS_SCRIPT_URLS.split(',').map(u => u.trim()).filter(u => u);
     const GAS_SECRET = process.env.GAS_SECRET;
 
-    if (!APPS_SCRIPT_URL) {
-        console.error('APPS_SCRIPT_URL is not defined');
+    if (urls.length === 0) {
+        console.error('No APPS_SCRIPT_URL defined');
         return res.status(500).send('Configuration Error');
     }
 
+    // Pick a random URL from the pool
+    const selectedUrl = urls[Math.floor(Math.random() * urls.length)];
+
     try {
-        const targetUrl = new URL(APPS_SCRIPT_URL);
+        const targetUrl = new URL(selectedUrl);
         if (GAS_SECRET) targetUrl.searchParams.set('secret', GAS_SECRET);
 
         const response = await fetch(targetUrl.toString(), {

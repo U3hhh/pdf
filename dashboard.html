@@ -286,7 +286,7 @@
             <div style="display:flex; gap:12px; align-items:center;">
                 <div class="status-badge">
                     <div id="bridge-dot" class="dot"></div>
-                    Bridge: <span id="status-text">Connecting...</span>
+                    <span id="bridge-info">Bridge: <span id="status-text">Connecting...</span></span>
                 </div>
                 <button onclick="logout()" class="status-badge" style="cursor:pointer; padding: 6px 10px;"
                     title="Logout">🚪 Exit</button>
@@ -448,6 +448,12 @@
             const isOnline = data.bridge && data.bridge.status === 'online';
             document.getElementById('status-text').innerText = isOnline ? 'Online' : 'Offline';
             document.getElementById('bridge-dot').className = `dot ${isOnline ? 'online' : 'offline'}`;
+
+            if (isOnline && data.bridge.total_nodes > 1) {
+                document.getElementById('bridge-info').innerHTML = `Cluster: <span id="status-text">Node ${data.bridge.active_node}/${data.bridge.total_nodes}</span>`;
+            } else {
+                document.getElementById('bridge-info').innerHTML = `Bridge: <span id="status-text">${isOnline ? 'Online' : 'Offline'}</span>`;
+            }
 
             // Health
             if (data.health) {

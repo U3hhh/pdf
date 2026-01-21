@@ -1,13 +1,16 @@
 export default async function handler(req, res) {
-    const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+    const APPS_SCRIPT_URLS = process.env.APPS_SCRIPT_URL || '';
+    const urls = APPS_SCRIPT_URLS.split(',').map(u => u.trim()).filter(u => u);
     const GAS_SECRET = process.env.GAS_SECRET;
 
-    if (!APPS_SCRIPT_URL) {
+    if (urls.length === 0) {
         return res.status(500).json({ error: 'APPS_SCRIPT_URL not configured' });
     }
 
     try {
-        const targetUrl = new URL(APPS_SCRIPT_URL);
+        // Pick a random URL for the request
+        const selectedUrl = urls[Math.floor(Math.random() * urls.length)];
+        const targetUrl = new URL(selectedUrl);
         const action = req.query.action;
 
         if (action) {
@@ -30,7 +33,12 @@ export default async function handler(req, res) {
         const data = await response.json();
         res.status(200).json({
             ...data,
-            bridge: { status: 'online', vercel_timestamp: new Date().toISOString() }
+            bridge: {
+                status: 'online',
+                vercel_timestamp: new Date().toISOString(),
+                active_node: urls.indexOf(selectedUrl) + 1,
+                total_nodes: urls.length
+            }
         });
     } catch (err) {
         res.status(500).json({
