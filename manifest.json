@@ -1,0 +1,17 @@
+{
+    "name": "Bot Terminal",
+    "short_name": "BotTerm",
+    "description": "Intelligent Bot Management Terminal",
+    "start_url": "/login",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#00f2fe",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/2586/2586488.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
