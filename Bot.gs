@@ -132,6 +132,14 @@ function processMessage(msg) {
   // Logger: Track incoming message
   logEvent('INBOUND', text || (msg.document ? 'File: ' + msg.document.file_name : 'Update'), 'OK', msg.from);
 
+  // 0. Maintenance Mode Check
+  const props = PropertiesService.getScriptProperties();
+  const isAdmin = String(chatId) === String(getAdminId());
+  if (props.getProperty('MAINTENANCE_MODE') === 'true' && !isAdmin) {
+    sendMessage(chatId, "🛠️ **Bot Maintenance:**\n\nI am currently undergoing some technical upgrades. Please try again in a few minutes!");
+    return;
+  }
+
   // 1. Spreadsheet-free Ping Test
   if (text.toLowerCase() === '/ping') {
     console.log('Ping command detected. Sending PONG...');

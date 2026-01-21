@@ -90,31 +90,64 @@ function doGet(e) {
         admin: !!props.getProperty('ADMIN_ID'),
         spreadsheet: !!props.getProperty('SPREADSHEET_ID'),
         loggingEnabled: props.getProperty('LOGGING_ENABLED') !== 'false',
+        maintenanceMode: props.getProperty('MAINTENANCE_MODE') === 'true',
         driveUsed: DriveApp.getStorageUsed(),
         driveTotal: DriveApp.getStorageLimit(),
         fetchCount: parseInt(props.getProperty('URL_FETCH_COUNT') || '0'),
         fetchLimit: 20000,
         runtimeCount: parseInt(props.getProperty('RUNTIME_COUNT') || '0'),
-        runtimeLimit: 5400000 // 90 minutes in ms
+        runtimeLimit: 5400000 
       },
+      stats: {
+        totalConversions: 0,
+        totalUsers: 0,
+        hourlyActivity: {}
+      },
+      users: [],
       logs: []
     };
 
     try {
       const ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
-      const sheet = ss.getSheetByName('Logs');
-      if (sheet) {
-        const rows = sheet.getDataRange().getValues();
-        // Skip header and get last 30
-        const logRows = rows.length > 1 ? rows.slice(1) : [];
+      
+      // 1. Stats Aggregation
+      const logSheet = ss.getSheetByName('Logs');
+      if (logSheet) {
+        const rows = logSheet.getDataRange().getValues();
+        const body = rows.slice(1);
+        data.stats.totalConversions = body.filter(r => r[3] === 'CONVERSION').length;
         
-        data.logs = logRows.slice(-30).reverse().map(row => ({
+        // Hourly Trend (Last 24h)
+        const now = new Date();
+        body.forEach(row => {
+          const date = new Date(row[0]);
+          if (now - date < 24 * 60 * 60 * 1000) {
+            const hour = date.getHours();
+            data.stats.hourlyActivity[hour] = (data.stats.hourlyActivity[hour] || 0) + 1;
+          }
+        });
+
+        // Logs for Feed
+        data.logs = body.slice(-40).reverse().map(row => ({
           timestamp: row[0] || new Date().toISOString(),
           userId: row[1] || 'Unknown',
           username: row[2] || '---',
           type: row[3] || 'INFO',
           details: row[4] || '---',
           status: row[5] || 'Pending'
+        }));
+      }
+
+      // 2. User Data
+      const usersSheet = ss.getSheetByName('Users');
+      if (usersSheet) {
+        const uRows = usersSheet.getDataRange().getValues();
+        data.stats.totalUsers = uRows.length - 1;
+        data.users = uRows.slice(1).slice(-10).reverse().map(row => ({
+          joined: row[0],
+          id: row[1],
+          username: row[2],
+          name: row[3]
         }));
       }
     } catch (err) {
@@ -160,6 +193,29 @@ function doGet(e) {
     const currentState = props.getProperty('LOGGING_ENABLED') !== 'false'; // Default to true
     props.setProperty('LOGGING_ENABLED', !currentState);
     return ContentService.createTextOutput(!currentState ? 'Logging Started' : 'Logging Stopped').setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  if (action === 'toggle_maintenance') {
+    const currentState = props.getProperty('MAINTENANCE_MODE') === 'true';
+    props.setProperty('MAINTENANCE_MODE', !currentState);
+    return ContentService.createTextOutput(!currentState ? 'Maintenance Enabled' : 'Maintenance Disabled').setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  if (action === 'broadcast') {
+    const msg = e.parameter.message;
+    if (!msg) return ContentService.createTextOutput('Error: No message').setMimeType(ContentService.MimeType.TEXT);
+    try {
+      const results = sendBroadcast(msg);
+      return ContentService.createTextOutput(results).setMimeType(ContentService.MimeType.TEXT);
+    } catch (err) {
+      return ContentService.createTextOutput('Broadcast Error: ' + err.toString()).setMimeType(ContentService.MimeType.TEXT);
+    }
+  }
+
+  if (action === 'add_whitelist') {
+    const user = e.parameter.user;
+    whitelistUser(user);
+    return ContentService.createTextOutput('User ' + user + ' whitelisted').setMimeType(ContentService.MimeType.TEXT);
   }
 
   if (action === 'reset_fetch') {
